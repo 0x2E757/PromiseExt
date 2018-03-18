@@ -1,0 +1,13 @@
+{
+    "name": "promise-ext",
+    "version": "1.0.0",
+    "description": "Promises Extended",
+    "scripts": {
+        "build": "node_modules/.bin/tsc -p ."
+    },
+    "author": "Eric Kevrel",
+    "license": "ISC",
+    "dependencies": {
+        "typescript": "^2.7.2"
+    }
+}
