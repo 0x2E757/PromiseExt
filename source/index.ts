@@ -2,15 +2,16 @@ export enum State { Scheduled, Executed, Canceled, Fulfilled, Rejected }
 
 export type Executor = (resolve: Function, reject: Function) => any;
 export type Action = (value: any) => any;
-
 export enum ActionType { NormalAction, ErrorHandler }
 export type ActionStack = { type: ActionType, action: Action }[];
 
 export type FailHandler = (error: any) => any;
+export type SuccessHandler = (result: any) => any;
 
 export class PromiseExt {
 
-    public static onFail: FailHandler = (error: any) => console.warn("Unhandled promise error:", error);
+    public static onFail: FailHandler = (error: any) => console.error("Unhandled promise error", error);
+    public static onSuccess: SuccessHandler | null;
 
     public state: State = State.Scheduled;
     public get isScheduled(): boolean { return this.state === State.Scheduled; }
@@ -24,6 +25,8 @@ export class PromiseExt {
     private actions: ActionStack = [];
     private index: number = 0;
 
+    private parent: PromiseExt | null = null;
+
     constructor(executor: Executor) {
         this.executor = executor;
         setTimeout(this.start);
@@ -32,56 +35,60 @@ export class PromiseExt {
     private start = () => {
         if (this.isScheduled) {
             this.state = State.Executed;
-            try { this.executor(this.process, this.handleError); }
-            catch (error) { this.process(error, true); }
+            try { this.executor(this.processNormal, this.handleError); }
+            catch (error) { this.processError(error); }
         }
     }
 
-    private process = (value: any, error?: boolean) => {
-        if (error === true) {
-            try { this.handleError(value); }
-            catch (error) { this.handleError(error); }
-        } else {
-            try { this.processAction(value); }
-            catch (error) { this.handleError(error); }
-        }
+    private processNormal = (value: any) => {
+        try { this.handleAction(value); }
+        catch (error) { this.handleError(error); }
     }
 
-    private processAction = (value: any) => {
+    private processError = (value: any) => {
+        try { this.handleError(value); }
+        catch (error) { this.handleError(error); }
+    }
+
+    private awaitChild = (promise: PromiseExt) => {
+        if (this.index === this.actions.length) this.then(() => { });
+        promise.then(this.processNormal, this.processError);
+        promise.parent = this;
+    }
+
+    private execute = (value: any, type: ActionType) => {
         while (this.index < this.actions.length) {
             const index = this.index++;
-            if (this.actions[index].type === ActionType.NormalAction) {
+            if (this.actions[index].type === type) {
                 const result = this.actions[index].action(value);
-                if (result instanceof PromiseExt) {
-                    return result.then(this.process);
-                } else {
-                    return this.process(result);
-                }
+                return result instanceof PromiseExt ? this.awaitChild(result) : this.processNormal(result);
             }
         }
-        this.state = State.Fulfilled;
+    }
+
+    private handleAction = (value: any) => {
+        this.execute(value, ActionType.NormalAction);
+        if (this.index === this.actions.length && this.isExecuted) {
+            this.state = State.Fulfilled;
+            if (PromiseExt.onSuccess && this.parent === null) {
+                PromiseExt.onSuccess(value);
+            }
+        }
     }
 
     private handleError = (error: any) => {
-        while (this.index < this.actions.length) {
-            const index = this.index++;
-            if (this.actions[index].type === ActionType.ErrorHandler) {
-                const result = this.actions[index].action(error);
-                if (result instanceof PromiseExt) {
-                    return result.then(this.process);
-                } else {
-                    return this.process(result);
-                }
-            }
+        this.execute(error, ActionType.ErrorHandler);
+        if (this.index === this.actions.length && this.isExecuted) {
+            this.state = State.Rejected;
+            if (this.parent) return this.parent.processError(error);
+            if (PromiseExt.onFail) PromiseExt.onFail(error);
         }
-        this.state = State.Rejected;
-        PromiseExt.onFail(error);
     }
 
-    public then = (action: Action) => {
+    public then = (action: Action, errorHandler?: Action) => {
         const type = ActionType.NormalAction;
         this.actions.push({ type, action });
-        return this;
+        return errorHandler ? this.catch(errorHandler) : this;
     }
 
     public catch = (action: Action) => {
