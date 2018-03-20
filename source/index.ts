@@ -2,7 +2,7 @@ export enum State { Scheduled, Executed, Canceled, Fulfilled, Rejected }
 
 export type InitialAction = (resolve: Function, reject: Function) => any;
 export type Action = (value: any) => any;
-export enum ActionType { Resolver = 1, Rejector = 2 }
+export enum ActionType { Resolver = 1, Rejector = 2, Finalizer = 3 }
 export type ActionStack = { type: ActionType, action: Action }[];
 
 export type FailHandler = (error: any) => any;
@@ -44,7 +44,7 @@ export class PromiseExt {
         if (this.isCanceled) return;
         while (this.index < this.actions.length) {
             const index = this.index++;
-            if (this.actions[index].type === actionType) {
+            if (this.actions[index].type & actionType) {
                 return this.handleAction(this.actions[index].action, value);
             }
         }
@@ -72,14 +72,19 @@ export class PromiseExt {
         } catch (error) { this.onCatch(error); }
     }
 
-    public then = (resolver: Action, rejector?: Action): this => {
-        this.actions.push({ type: ActionType.Resolver, action: resolver });
+    public then = (action: Action, rejector?: Action): this => {
+        this.actions.push({ type: ActionType.Resolver, action });
         return rejector ? this.catch(rejector) : this;
     }
 
-    public catch = (resolver: Action, rejector?: Action): this => {
-        this.actions.push({ type: ActionType.Rejector, action: resolver });
+    public catch = (action: Action, rejector?: Action): this => {
+        this.actions.push({ type: ActionType.Rejector, action });
         return rejector ? this.catch(rejector) : this;
     }
-    
+
+    public finally = (action: Action, rejector?: Action) => {
+        this.actions.push({ type: ActionType.Finalizer, action });
+        return rejector ? this.catch(rejector) : this;
+    }
+
 }
