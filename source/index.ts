@@ -2,7 +2,7 @@ export enum State { Scheduled, Executed, Canceled, Fulfilled, Rejected }
 
 export type InitialAction = (resolve: Function, reject: Function) => any;
 export type Action = (value: any) => any;
-export enum ActionType { NormalAction, ErrorHandler }
+export enum ActionType { Resolver = 1, Rejector = 2 }
 export type ActionStack = { type: ActionType, action: Action }[];
 
 export type FailHandler = (error: any) => any;
@@ -35,8 +35,8 @@ export class PromiseExt {
     private start = () => {
         if (this.isScheduled) {
             this.state = State.Executed;
-            try { this.initialAction(this.execNormalAction, this.execErrorHandler); }
-            catch (error) { this.execErrorHandler(error); }
+            try { this.initialAction(this.onThen, this.onCatch); }
+            catch (error) { this.onCatch(error); }
         }
     }
 
@@ -51,35 +51,35 @@ export class PromiseExt {
         if (finalizer) finalizer(value);
     }
 
-    private execNormalAction = (value: any): any => {
-        const finalizer = this.parent ? this.parent.execNormalAction : PromiseExt.onSuccess;
-        this.exec(value, ActionType.NormalAction, finalizer);
+    private onThen = (value: any): any => {
+        const finalizer = this.parent ? this.parent.onThen : PromiseExt.onSuccess;
+        this.exec(value, ActionType.Resolver, finalizer);
     }
 
-    private execErrorHandler = (value: any): any => {
-        const finalizer = this.parent ? this.parent.execErrorHandler : PromiseExt.onFail;
-        this.exec(value, ActionType.ErrorHandler, finalizer);
+    private onCatch = (value: any): any => {
+        const finalizer = this.parent ? this.parent.onCatch : PromiseExt.onFail;
+        this.exec(value, ActionType.Rejector, finalizer);
     }
 
     private awaitChild = (promise: PromiseExt) => {
-        promise.then(this.execNormalAction, this.execErrorHandler).parent = this;
+        promise.then(this.onThen, this.onCatch).parent = this;
     }
 
     private handleAction = (action: Action, value: any) => {
         try {
             const result = action(value);
-            result instanceof PromiseExt ? this.awaitChild(result) : this.execNormalAction(result);
-        } catch (error) { this.execErrorHandler(error); }
+            result instanceof PromiseExt ? this.awaitChild(result) : this.onThen(result);
+        } catch (error) { this.onCatch(error); }
     }
 
-    public then = (action: Action, errorHandler?: Action) => {
-        this.actions.push({ type: ActionType.NormalAction, action });
-        return errorHandler ? this.catch(errorHandler) : this;
+    public then = (resolver: Action, rejector?: Action): this => {
+        this.actions.push({ type: ActionType.Resolver, action: resolver });
+        return rejector ? this.catch(rejector) : this;
     }
 
-    public catch = (action: Action) => {
-        this.actions.push({ type: ActionType.ErrorHandler, action });
-        return this;
+    public catch = (resolver: Action, rejector?: Action): this => {
+        this.actions.push({ type: ActionType.Rejector, action: resolver });
+        return rejector ? this.catch(rejector) : this;
     }
     
 }
