@@ -1,4 +1,4 @@
-export enum State { Scheduled, Executed, Canceled, Fulfilled, Rejected }
+export enum State { Scheduled, Started, Canceled, Fulfilled, Rejected }
 
 export type InitialAction = (resolve: Function, reject: Function) => any;
 export type Action = (value: any) => any;
@@ -15,7 +15,7 @@ export class PromiseExt {
 
     public state: State = State.Scheduled;
     public get isScheduled(): boolean { return this.state === State.Scheduled; }
-    public get isExecuted(): boolean { return this.state === State.Executed; }
+    public get isStarted(): boolean { return this.state === State.Started; }
     public get isCanceled(): boolean { return this.state === State.Canceled; }
     public get isFulfilled(): boolean { return this.state === State.Fulfilled; }
     public get isRejected(): boolean { return this.state === State.Rejected; }
@@ -24,8 +24,10 @@ export class PromiseExt {
     private initialAction: InitialAction;
     private actions: ActionStack = [];
     private index: number = 0;
-
     private parent: PromiseExt | null = null;
+
+    private result: any = undefined;
+    private hasError: boolean = false;
 
     constructor(initialAction: InitialAction) {
         this.initialAction = initialAction;
@@ -34,9 +36,26 @@ export class PromiseExt {
 
     private start = () => {
         if (this.isScheduled) {
-            this.state = State.Executed;
+            this.state = State.Started;
             try { this.initialAction(this.onThen, this.onCatch); }
             catch (error) { this.onCatch(error); }
+        }
+    }
+
+    private handleAction = (action: { type: ActionType, action: Action }, value: any) => {
+        try {
+            const result = action.action(value);
+            if (action.type === ActionType.Finalizer) {
+                this.hasError ? this.onCatch(this.result) : this.onThen(this.result);
+            } else {
+                this.result = result;
+                this.hasError = false;
+                result instanceof PromiseExt ? this.awaitChild(result) : this.onThen(result);
+            }
+        } catch (error) { 
+            this.result = error;
+            this.hasError = true;
+            this.onCatch(this.result);
         }
     }
 
@@ -45,7 +64,7 @@ export class PromiseExt {
         while (this.index < this.actions.length) {
             const index = this.index++;
             if (this.actions[index].type & actionType) {
-                return this.handleAction(this.actions[index].action, value);
+                return this.handleAction(this.actions[index], value);
             }
         }
         if (finalizer) finalizer(value);
@@ -63,13 +82,6 @@ export class PromiseExt {
 
     private awaitChild = (promise: PromiseExt) => {
         promise.then(this.onThen, this.onCatch).parent = this;
-    }
-
-    private handleAction = (action: Action, value: any) => {
-        try {
-            const result = action(value);
-            result instanceof PromiseExt ? this.awaitChild(result) : this.onThen(result);
-        } catch (error) { this.onCatch(error); }
     }
 
     public then = (action: Action, rejector?: Action): this => {
