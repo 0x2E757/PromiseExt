@@ -1,6 +1,6 @@
 export enum State { Scheduled, Executed, Canceled, Fulfilled, Rejected }
 
-export type Executor = (resolve: Function, reject: Function) => any;
+export type InitialAction = (resolve: Function, reject: Function) => any;
 export type Action = (value: any) => any;
 export enum ActionType { NormalAction, ErrorHandler }
 export type ActionStack = { type: ActionType, action: Action }[];
@@ -10,8 +10,8 @@ export type SuccessHandler = (result: any) => any;
 
 export class PromiseExt {
 
+    public static onSuccess: SuccessHandler | null = null;
     public static onFail: FailHandler = (error: any) => console.error("Unhandled promise error", error);
-    public static onSuccess: SuccessHandler | null;
 
     public state: State = State.Scheduled;
     public get isScheduled(): boolean { return this.state === State.Scheduled; }
@@ -21,80 +21,65 @@ export class PromiseExt {
     public get isRejected(): boolean { return this.state === State.Rejected; }
     public cancel = () => this.state = State.Canceled;
 
-    private executor: Executor;
+    private initialAction: InitialAction;
     private actions: ActionStack = [];
     private index: number = 0;
 
     private parent: PromiseExt | null = null;
 
-    constructor(executor: Executor) {
-        this.executor = executor;
+    constructor(initialAction: InitialAction) {
+        this.initialAction = initialAction;
         setTimeout(this.start);
     }
 
     private start = () => {
         if (this.isScheduled) {
             this.state = State.Executed;
-            try { this.executor(this.processNormal, this.handleError); }
-            catch (error) { this.processError(error); }
+            try { this.initialAction(this.execNormalAction, this.execErrorHandler); }
+            catch (error) { this.execErrorHandler(error); }
         }
     }
 
-    private processNormal = (value: any) => {
-        try { this.handleAction(value); }
-        catch (error) { this.handleError(error); }
+    private exec = (value: any, actionType: ActionType, finalizer: Function | null) => {
+        if (this.isCanceled) return;
+        while (this.index < this.actions.length) {
+            const index = this.index++;
+            if (this.actions[index].type === actionType) {
+                return this.handleAction(this.actions[index].action, value);
+            }
+        }
+        if (finalizer) finalizer(value);
     }
 
-    private processError = (value: any) => {
-        try { this.handleError(value); }
-        catch (error) { this.handleError(error); }
+    private execNormalAction = (value: any): any => {
+        const finalizer = this.parent ? this.parent.execNormalAction : PromiseExt.onSuccess;
+        this.exec(value, ActionType.NormalAction, finalizer);
+    }
+
+    private execErrorHandler = (value: any): any => {
+        const finalizer = this.parent ? this.parent.execErrorHandler : PromiseExt.onFail;
+        this.exec(value, ActionType.ErrorHandler, finalizer);
     }
 
     private awaitChild = (promise: PromiseExt) => {
-        if (this.index === this.actions.length) this.then(() => { });
-        promise.then(this.processNormal, this.processError);
-        promise.parent = this;
+        promise.then(this.execNormalAction, this.execErrorHandler).parent = this;
     }
 
-    private execute = (value: any, type: ActionType) => {
-        while (this.index < this.actions.length) {
-            const index = this.index++;
-            if (this.actions[index].type === type) {
-                const result = this.actions[index].action(value);
-                return result instanceof PromiseExt ? this.awaitChild(result) : this.processNormal(result);
-            }
-        }
-    }
-
-    private handleAction = (value: any) => {
-        this.execute(value, ActionType.NormalAction);
-        if (this.index === this.actions.length && this.isExecuted) {
-            this.state = State.Fulfilled;
-            if (PromiseExt.onSuccess && this.parent === null) {
-                PromiseExt.onSuccess(value);
-            }
-        }
-    }
-
-    private handleError = (error: any) => {
-        this.execute(error, ActionType.ErrorHandler);
-        if (this.index === this.actions.length && this.isExecuted) {
-            this.state = State.Rejected;
-            if (this.parent) return this.parent.processError(error);
-            if (PromiseExt.onFail) PromiseExt.onFail(error);
-        }
+    private handleAction = (action: Action, value: any) => {
+        try {
+            const result = action(value);
+            result instanceof PromiseExt ? this.awaitChild(result) : this.execNormalAction(result);
+        } catch (error) { this.execErrorHandler(error); }
     }
 
     public then = (action: Action, errorHandler?: Action) => {
-        const type = ActionType.NormalAction;
-        this.actions.push({ type, action });
+        this.actions.push({ type: ActionType.NormalAction, action });
         return errorHandler ? this.catch(errorHandler) : this;
     }
 
     public catch = (action: Action) => {
-        const type = ActionType.ErrorHandler;
-        this.actions.push({ type, action });
+        this.actions.push({ type: ActionType.ErrorHandler, action });
         return this;
     }
-
+    
 }
