@@ -4,7 +4,7 @@ export type InitialAction = (resolve: Function, reject: Function) => any;
 
 export type Action = (value: any) => any;
 export enum ActionType { Resolver = 1, Rejector = 2, Finalizer = 3 }
-export type ActionStack = { type: ActionType, action: Action }[];
+export type ActionStack = { action: Action, type: ActionType }[];
 
 export type UnhandledRejectionHandler = (error: any) => any;
 
@@ -31,7 +31,7 @@ export class PromiseExt {
 
     constructor(initialAction: InitialAction) {
         this.initialAction = initialAction;
-        setTimeout(this.start);
+        this.start();
     }
 
     private resolve = (value: any): void => {
@@ -121,18 +121,23 @@ export class PromiseExt {
         }
     }
 
+    private addAction = (action: Action, type: ActionType): void => {
+        this.actions.push({ action, type });
+        if (this.isFinished) this.exec();
+    }
+
     public then = (action: Action, rejector?: Action): this => {
-        this.actions.push({ type: ActionType.Resolver, action });
+        this.addAction(action,ActionType.Resolver);
         return rejector ? this.catch(rejector) : this;
     }
 
     public catch = (action: Action, rejector?: Action): this => {
-        this.actions.push({ type: ActionType.Rejector, action });
+        this.addAction(action,ActionType.Rejector);
         return rejector ? this.catch(rejector) : this;
     }
 
     public finally = (action: Action, rejector?: Action): this => {
-        this.actions.push({ type: ActionType.Finalizer, action });
+        this.addAction(action,ActionType.Finalizer);
         return rejector ? this.catch(rejector) : this;
     }
 
