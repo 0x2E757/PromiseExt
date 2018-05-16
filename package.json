@@ -14,9 +14,9 @@
     ],
     "main": "./build/index.js",
     "scripts": {
-        "build": "node_modules/.bin/tsc -p ."
+        "build": "tsc -p ."
     },
-    "dependencies": {
+    "devDependencies": {
         "typescript": "^2.7.2"
     }
 }
