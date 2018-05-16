@@ -4,6 +4,7 @@
     "description": "Promises extended",
     "author": "Eric Kevrel",
     "license": "MIT",
+    "repository": "0x2E757/PromiseExt",
     "keywords": [
         "promise",
         "promises",
