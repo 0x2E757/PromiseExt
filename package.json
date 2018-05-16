@@ -1,5 +1,5 @@
 {
-    "name": "promise-ext",
+    "name": "@0x2e757/promise-ext",
     "version": "1.0.0",
     "description": "Promises extended",
     "author": "Eric Kevrel",
@@ -9,7 +9,8 @@
         "promise",
         "promises",
         "cancellable",
-        "extended"
+        "extended",
+        "typescript"
     ],
     "main": "./build/index.js",
     "scripts": {
