@@ -178,3 +178,5 @@ export class PromiseExt {
     }
 
 }
+
+export default PromiseExt;

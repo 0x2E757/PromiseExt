@@ -1,12 +1,19 @@
 {
     "name": "promise-ext",
     "version": "1.0.0",
-    "description": "Promises Extended",
+    "description": "Promises extended",
+    "author": "Eric Kevrel",
+    "license": "MIT",
+    "keywords": [
+        "promise",
+        "promises",
+        "cancellable",
+        "extended"
+    ],
+    "main": "./build/index.js",
     "scripts": {
         "build": "node_modules/.bin/tsc -p ."
     },
-    "author": "Eric Kevrel",
-    "license": "ISC",
     "dependencies": {
         "typescript": "^2.7.2"
     }
