@@ -4,8 +4,7 @@ export declare enum State {
     Finished = 2,
     Canceled = 3,
 }
-export declare type InitialAction = (resolve: Function, reject: Function) => any;
-export declare type Action = (value: any) => any;
+export declare type Action<TArgument = any, TResult = any> = (arg: TArgument) => TResult;
 export declare enum ActionType {
     Resolver = 1,
     Rejector = 2,
@@ -15,13 +14,14 @@ export declare type ActionStack = {
     action: Action;
     type: ActionType;
 }[];
+export declare type InitialAction<TResolveValue> = (resolve: Action<TResolveValue>, reject: Action) => any;
 export declare type UnhandledRejectionHandler = (error: any) => any;
 export declare type Params = {
     deferStart: boolean;
     deferdActions: boolean;
     useSetImmediate: boolean;
 };
-export declare class PromiseExt {
+export declare class PromiseExt<TResult> {
     static onUnhandledRejection: UnhandledRejectionHandler;
     state: State;
     readonly isScheduled: boolean;
@@ -37,7 +37,7 @@ export declare class PromiseExt {
     private result;
     private hasError;
     private exceptionTimeoutHandler;
-    constructor(initialAction: InitialAction, parameters?: Partial<Params>);
+    constructor(initialAction: InitialAction<TResult>, parameters?: Partial<Params>);
     private resolve;
     private reject;
     private deferStart;
@@ -48,8 +48,8 @@ export declare class PromiseExt {
     private onException;
     private exec;
     private addAction;
-    then: (action: Action, rejector?: Action | undefined) => this;
-    catch: (action: Action, rejector?: Action | undefined) => this;
-    finally: (action: Action, rejector?: Action | undefined) => this;
+    then: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
+    catch: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TResult | TNewResult>;
+    finally: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
 }
 export default PromiseExt;

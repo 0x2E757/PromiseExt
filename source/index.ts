@@ -1,10 +1,10 @@
 export enum State { Scheduled, Running, Finished, Canceled }
 
-export type InitialAction = (resolve: Function, reject: Function) => any;
-
-export type Action = (value: any) => any;
+export type Action<TArgument = any, TResult = any> = (arg: TArgument) => TResult;
 export enum ActionType { Resolver = 1, Rejector = 2, Finalizer = 3 }
 export type ActionStack = { action: Action, type: ActionType }[];
+
+export type InitialAction<TResolveValue> = (resolve: Action<TResolveValue>, reject: Action) => any;
 
 export type UnhandledRejectionHandler = (error: any) => any;
 
@@ -14,7 +14,7 @@ export type Params = {
     useSetImmediate: boolean;
 };
 
-export class PromiseExt {
+export class PromiseExt<TResult> {
 
     public static onUnhandledRejection: UnhandledRejectionHandler = (error: any) => {
         console.error("Unhandled promise rejection", error);
@@ -29,16 +29,16 @@ export class PromiseExt {
 
     public params: Params;
 
-    private initialAction: InitialAction;
+    private initialAction: InitialAction<TResult>;
     private actions: ActionStack = [];
     private index: number = 0;
-    private parent: PromiseExt | null = null;
+    private parent: PromiseExt<any> | null = null;
 
-    private result!: any;
+    private result!: TResult;
     private hasError!: boolean;
     private exceptionTimeoutHandler: number = 0;
 
-    constructor(initialAction: InitialAction, parameters?: Partial<Params>) {
+    constructor(initialAction: InitialAction<TResult>, parameters?: Partial<Params>) {
         this.params = {
             deferStart: false,
             deferdActions: false,
@@ -162,21 +162,29 @@ export class PromiseExt {
         if (this.isFinished) this.exec();
     }
 
-    public then = (action: Action, rejector?: Action): this => {
+    public then = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
         this.addAction(action, ActionType.Resolver);
-        return rejector ? this.catch(rejector) : this;
+        return rejector ? this.catch(rejector) : this as any;
     }
 
-    public catch = (action: Action, rejector?: Action): this => {
+    public catch = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TResult | TNewResult> => {
         this.addAction(action, ActionType.Rejector);
-        return rejector ? this.catch(rejector) : this;
+        return rejector ? this.catch(rejector) : this as any;
     }
 
-    public finally = (action: Action, rejector?: Action): this => {
+    public finally = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
         this.addAction(action, ActionType.Finalizer);
-        return rejector ? this.catch(rejector) : this;
+        return rejector ? this.catch(rejector) : this as any;
     }
 
 }
 
 export default PromiseExt;
+
+/*
+
+    TODO:
+    1. Support promise-like values in then/catch/finally
+    2. Implement PromiseExt.all with array or object as argument
+
+*/

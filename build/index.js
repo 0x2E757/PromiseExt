@@ -163,3 +163,10 @@ PromiseExt.onUnhandledRejection = (error) => {
 };
 exports.PromiseExt = PromiseExt;
 exports.default = PromiseExt;
+/*
+
+    TODO:
+    1. Support promise-like values in then/catch/finally
+    2. Implement PromiseExt.all with array or object as argument
+
+*/ 
