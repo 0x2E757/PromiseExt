@@ -13,6 +13,90 @@ var ActionType;
     ActionType[ActionType["Rejector"] = 2] = "Rejector";
     ActionType[ActionType["Finalizer"] = 3] = "Finalizer";
 })(ActionType = exports.ActionType || (exports.ActionType = {}));
+const isPromiseLike = (value) => typeof value === "object" && typeof value.then === "function";
+const allArray = (values) => {
+    const results = [];
+    const done = [];
+    return new PromiseExt((resolve, reject) => {
+        const tryResolve = (index) => (value) => {
+            results[index] = value;
+            done[index] = true;
+            for (let n = 0; n < done.length; n++) {
+                if (done[n] === false)
+                    return;
+            }
+            resolve(results);
+        };
+        for (let n = 0; n < values.length; n++) {
+            const value = values[n];
+            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
+            if (isPromiseOrPromiseLike) {
+                results.push(value);
+                done.push(false);
+                value.then(tryResolve(n), reject);
+            }
+            else {
+                results.push(value);
+                done.push(true);
+            }
+        }
+    });
+};
+const allObject = (values) => {
+    const results = {};
+    const done = {};
+    return new PromiseExt((resolve, reject) => {
+        const tryResolve = (key) => (value) => {
+            results[key] = value;
+            done[key] = true;
+            for (const key in values)
+                if (done[key] === false)
+                    return;
+            resolve(results);
+        };
+        for (const key in values) {
+            const value = values[key];
+            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
+            if (isPromiseOrPromiseLike) {
+                results[key] = value;
+                done[key] = false;
+                value.then(tryResolve(key), reject);
+            }
+            else {
+                results[key] = value;
+                done[key] = true;
+            }
+        }
+    });
+};
+const race = (values) => {
+    const cancelablePromises = [];
+    let resolved = false;
+    return new PromiseExt((resolve, reject) => {
+        const resolver = (value) => {
+            if (resolved)
+                return;
+            for (const promise of cancelablePromises) {
+                if (promise instanceof PromiseExt)
+                    promise.cancel();
+            }
+            resolve(value);
+            resolved = true;
+        };
+        for (let n = 0; n < values.length; n++) {
+            const value = values[n];
+            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
+            if (isPromiseOrPromiseLike) {
+                if (value instanceof PromiseExt)
+                    cancelablePromises.push(value);
+                value.then(resolver, reject);
+            }
+            else {
+                return resolver(value);
+            }
+        }
+    });
+};
 class PromiseExt {
     constructor(initialAction, parameters) {
         this.state = State.Scheduled;
@@ -88,40 +172,43 @@ class PromiseExt {
                 PromiseExt.onUnhandledRejection(error);
             }
         };
+        this.execRunAction = (actionsItem) => {
+            switch (actionsItem.type) {
+                case ActionType.Resolver: return this.onThen(actionsItem.action);
+                case ActionType.Rejector: return this.onCatch(actionsItem.action);
+                case ActionType.Finalizer: return this.onFinally(actionsItem.action);
+            }
+        };
+        this.execHandleResult = () => {
+            if (this.result instanceof PromiseExt) {
+                const resolver = this.hasError ? this.reject : this.resolve;
+                this.result.then(resolver, this.reject).parent = this;
+                return true;
+            }
+            if (this.result instanceof Promise) {
+                const resolver = this.hasError ? this.reject : this.resolve;
+                this.result.then(resolver, this.reject);
+                return true;
+            }
+            if (isPromiseLike(this.result)) {
+                const resolver = this.hasError ? this.reject : this.resolve;
+                this.result.then(resolver, this.reject);
+                return true;
+            }
+            if (this.params.deferdActions) {
+                this.params.useSetImmediate ? setImmediate(this.exec) : setTimeout(this.exec);
+                return true;
+            }
+            return false;
+        };
         this.exec = () => {
             if (this.isCanceled)
                 return;
             this.state = State.Running;
             while (this.index < this.actions.length) {
-                const index = this.index++;
-                switch (this.actions[index].type) {
-                    case ActionType.Resolver: {
-                        this.onThen(this.actions[index].action);
-                        break;
-                    }
-                    case ActionType.Rejector: {
-                        this.onCatch(this.actions[index].action);
-                        break;
-                    }
-                    case ActionType.Finalizer: {
-                        this.onFinally(this.actions[index].action);
-                        break;
-                    }
-                }
-                if (this.result instanceof PromiseExt) {
-                    const resolver = this.hasError ? this.reject : this.resolve;
-                    this.result.then(resolver, this.reject).parent = this;
+                this.execRunAction(this.actions[this.index++]);
+                if (this.execHandleResult())
                     return;
-                }
-                if (this.result instanceof Promise) {
-                    const resolver = this.hasError ? this.reject : this.resolve;
-                    this.result.then(resolver, this.reject);
-                    return;
-                }
-                if (this.params.deferdActions) {
-                    this.params.useSetImmediate ? setImmediate(this.exec) : setTimeout(this.exec);
-                    return;
-                }
             }
             if (this.isRunning) {
                 this.state = State.Finished;
@@ -167,12 +254,7 @@ class PromiseExt {
 PromiseExt.onUnhandledRejection = (error) => {
     console.error("Unhandled promise rejection", error);
 };
+PromiseExt.all = (values) => Array.isArray(values) ? allArray(values) : allObject(values);
+PromiseExt.race = race;
 exports.PromiseExt = PromiseExt;
 exports.default = PromiseExt;
-/*
-
-    TODO:
-    1. Implement PromiseExt.all with array or object as argument
-    2. Implement PromiseExt.race with array or object as argument
-
-*/ 
