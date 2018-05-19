@@ -113,7 +113,7 @@ export class PromiseExt<TResult> {
         }
     }
 
-    private onException = (error: any, index: number) => () => {
+    private onExceptionGenerator = (error: any, index: number) => () => {
         if (index === this.actions.length) {
             PromiseExt.onUnhandledRejection(error);
         }
@@ -139,7 +139,13 @@ export class PromiseExt<TResult> {
                 }
             }
             if (this.result instanceof PromiseExt) {
-                this.result.then(this.resolve, this.reject).parent = this;
+                const resolver = this.hasError ? this.reject : this.resolve;
+                this.result.then(resolver, this.reject).parent = this;
+                return;
+            }
+            if (this.result instanceof Promise) {
+                const resolver = this.hasError ? this.reject : this.resolve;
+                this.result.then(resolver, this.reject);
                 return;
             }
             if (this.params.deferdActions) {
@@ -151,7 +157,7 @@ export class PromiseExt<TResult> {
             this.state = State.Finished;
             if (this.hasError && this.parent === null) {
                 if (this.exceptionTimeoutHandler) clearTimeout(this.exceptionTimeoutHandler);
-                const onException = this.onException(this.result, this.index);
+                const onException = this.onExceptionGenerator(this.result, this.index);
                 this.exceptionTimeoutHandler = setTimeout(onException);
             }
         }
@@ -184,7 +190,7 @@ export default PromiseExt;
 /*
 
     TODO:
-    1. Support promise-like values in then/catch/finally
-    2. Implement PromiseExt.all with array or object as argument
+    1. Implement PromiseExt.all with array or object as argument
+    2. Implement PromiseExt.race with array or object as argument
 
 */

@@ -45,7 +45,7 @@ export declare class PromiseExt<TResult> {
     private onThen;
     private onCatch;
     private onFinally;
-    private onException;
+    private onExceptionGenerator;
     private exec;
     private addAction;
     then: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
