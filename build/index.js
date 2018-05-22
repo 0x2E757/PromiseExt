@@ -18,14 +18,24 @@ const allArray = (values) => {
     const results = [];
     const done = [];
     return new PromiseExt((resolve, reject) => {
-        const tryResolve = (index) => (value) => {
+        const resolveWrapper = (index) => (value) => {
             results[index] = value;
             done[index] = true;
-            for (let n = 0; n < done.length; n++) {
+            for (let n = 0; n < done.length; n++)
                 if (done[n] === false)
                     return;
-            }
             resolve(results);
+        };
+        const rejectWrapper = (index) => (avalue) => {
+            for (let n = 0; n < values.length; n++) {
+                const value = values[n];
+                if (n !== index && done[n] !== false) {
+                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                        value.cancel();
+                    }
+                }
+            }
+            reject(avalue);
         };
         for (let n = 0; n < values.length; n++) {
             const value = values[n];
@@ -33,7 +43,7 @@ const allArray = (values) => {
             if (isPromiseOrPromiseLike) {
                 results.push(value);
                 done.push(false);
-                value.then(tryResolve(n), reject);
+                value.then(resolveWrapper(n), rejectWrapper(n));
             }
             else {
                 results.push(value);
@@ -46,13 +56,24 @@ const allObject = (values) => {
     const results = {};
     const done = {};
     return new PromiseExt((resolve, reject) => {
-        const tryResolve = (key) => (value) => {
-            results[key] = value;
-            done[key] = true;
+        const resolveWrapper = (akey) => (value) => {
+            results[akey] = value;
+            done[akey] = true;
             for (const key in values)
                 if (done[key] === false)
                     return;
             resolve(results);
+        };
+        const rejectWrapper = (akey) => (avalue) => {
+            for (const key in values) {
+                const value = values[key];
+                if (key !== akey && done[akey] !== false) {
+                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                        value.cancel();
+                    }
+                }
+            }
+            reject(avalue);
         };
         for (const key in values) {
             const value = values[key];
@@ -60,7 +81,7 @@ const allObject = (values) => {
             if (isPromiseOrPromiseLike) {
                 results[key] = value;
                 done[key] = false;
-                value.then(tryResolve(key), reject);
+                value.then(resolveWrapper(key), rejectWrapper(key));
             }
             else {
                 results[key] = value;
@@ -73,15 +94,27 @@ const race = (values) => {
     const cancelablePromises = [];
     let resolved = false;
     return new PromiseExt((resolve, reject) => {
-        const resolver = (value) => {
+        const resolveWrapper = (value) => {
             if (resolved)
                 return;
             for (const promise of cancelablePromises) {
-                if (promise instanceof PromiseExt)
+                if (value instanceof PromiseExt || typeof value.cancel === "function") {
                     promise.cancel();
+                }
             }
             resolve(value);
             resolved = true;
+        };
+        const rejectWrapper = (index) => (avalue) => {
+            if (resolved)
+                return;
+            for (let n = 0; n < values.length; n++) {
+                const value = values[n];
+                if (n !== index && (value instanceof PromiseExt || typeof value.cancel === "function")) {
+                    value.cancel();
+                }
+            }
+            reject(avalue);
         };
         for (let n = 0; n < values.length; n++) {
             const value = values[n];
@@ -89,10 +122,10 @@ const race = (values) => {
             if (isPromiseOrPromiseLike) {
                 if (value instanceof PromiseExt)
                     cancelablePromises.push(value);
-                value.then(resolver, reject);
+                value.then(resolveWrapper, rejectWrapper(n));
             }
             else {
-                return resolver(value);
+                return resolveWrapper(value);
             }
         }
     });
