@@ -5,7 +5,7 @@ Custom promise implementation with an advanced functionality and native promise 
 ## Install
 
 ```bash
-npm i @0x2E757/PromiseExt
+npm i @0x2e757/promise-ext
 ```
 
 ## Usage
