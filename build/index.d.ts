@@ -2,13 +2,13 @@ export declare enum State {
     Scheduled = 0,
     Running = 1,
     Finished = 2,
-    Canceled = 3,
+    Canceled = 3
 }
 export declare type Action<TArgument = any, TResult = any> = (arg: TArgument) => TResult;
 export declare enum ActionType {
     Resolver = 1,
     Rejector = 2,
-    Finalizer = 3,
+    Finalizer = 3
 }
 export declare type ActionStack = {
     action: Action;
@@ -85,3 +85,4 @@ export declare class PromiseExt<TResult> {
     finally: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
 }
 export default PromiseExt;
+//# sourceMappingURL=index.d.ts.map

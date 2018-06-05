@@ -30,7 +30,7 @@ import PromiseExt from "@0x2e757/promise-ext";
 
 `isCanceled` — getter that will return true if state equals 3, otherwise false;
 
-<sub>\* scheduled means that promise isn't started yet, running means that promise has started and some of chain actions is in progress or scheduled.</sub>
+<sub>\* scheduled means that promise isn't started yet, running means that promise has started and one of chain actions is in progress or scheduled.</sub>
 
 ### Class object's public methods
 

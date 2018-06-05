@@ -291,3 +291,4 @@ PromiseExt.all = (values) => Array.isArray(values) ? allArray(values) : allObjec
 PromiseExt.race = race;
 exports.PromiseExt = PromiseExt;
 exports.default = PromiseExt;
+//# sourceMappingURL=index.js.map

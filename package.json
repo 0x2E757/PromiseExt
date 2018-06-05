@@ -1,6 +1,6 @@
 {
     "name": "@0x2e757/promise-ext",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "Promises extended",
     "author": "Eric Kevrel",
     "license": "MIT",
@@ -17,6 +17,6 @@
         "build": "tsc -p ."
     },
     "devDependencies": {
-        "typescript": "^2.7.2"
+        "typescript": "^2.9.1"
     }
 }
