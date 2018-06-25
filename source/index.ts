@@ -73,8 +73,8 @@ const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
 
         for (let n: number = 0; n < values.length; n++) {
             const value = values[n];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 results.push(value);
                 done.push(false);
                 value.then(resolveWrapper(n), rejectWrapper(n));
@@ -116,8 +116,8 @@ const allObject = (values: { [Key: string]: ValueOrPromiseLike<any> }): PromiseE
 
         for (const key in values) {
             const value = values[key];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 results[key] = value;
                 done[key] = false;
                 value.then(resolveWrapper(key), rejectWrapper(key));
@@ -162,8 +162,8 @@ const race: PromiseExtRace = (values: any) => {
 
         for (let n: number = 0; n < values.length; n++) {
             const value = values[n];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 if (value instanceof PromiseExt) cancelablePromises.push(value);
                 value.then(resolveWrapper, rejectWrapper(n));
             } else {
@@ -177,19 +177,16 @@ const race: PromiseExtRace = (values: any) => {
 
 export class PromiseExt<TResult> {
 
-    public static onUnhandledRejection: UnhandledRejectionHandler = (error: any) => {
-        console.error("Unhandled promise rejection", error);
-    }
-
+    public static onUnhandledRejection: UnhandledRejectionHandler = (error: any): any => console.error("Unhandled promise rejection", error);
     public static all: PromiseExtAll = (values: any) => Array.isArray(values) ? allArray(values) : allObject(values);
     public static race: PromiseExtRace = race;
 
     public state: State = State.Scheduled;
-    public get isScheduled(): boolean { return this.state === State.Scheduled; }
-    public get isRunning(): boolean { return this.state === State.Running; }
-    public get isFinished(): boolean { return this.state === State.Finished; }
-    public get isCanceled(): boolean { return this.state === State.Canceled; }
-    public cancel = () => this.state = State.Canceled;
+    public isScheduled!: () => boolean;
+    public isRunning!: () => boolean;
+    public isFinished!: () => boolean;
+    public isCanceled!: () => boolean;
+    public cancel!: () => void;
 
     public params: Params;
 
@@ -297,11 +294,6 @@ export class PromiseExt<TResult> {
             this.result.then(resolver, this.reject).parent = this;
             return true;
         }
-        if (this.result instanceof Promise) {
-            const resolver = this.hasError ? this.reject : this.resolve;
-            this.result.then(resolver, this.reject);
-            return true;
-        }
         if (isPromiseLike(this.result)) {
             const resolver = this.hasError ? this.reject : this.resolve;
             (this.result as any).then(resolver, this.reject);
@@ -352,5 +344,11 @@ export class PromiseExt<TResult> {
     }
 
 }
+
+PromiseExt.prototype.isScheduled = function (): boolean { return this.state === State.Scheduled; };
+PromiseExt.prototype.isRunning = function (): boolean { return this.state === State.Running; };
+PromiseExt.prototype.isFinished = function (): boolean { return this.state === State.Finished; };
+PromiseExt.prototype.isCanceled = function (): boolean { return this.state === State.Canceled; };
+PromiseExt.prototype.cancel = function (): void { this.state = State.Canceled; };
 
 export default PromiseExt;

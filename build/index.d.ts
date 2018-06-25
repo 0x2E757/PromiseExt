@@ -54,11 +54,11 @@ export declare class PromiseExt<TResult> {
     static all: PromiseExtAll;
     static race: PromiseExtRace;
     state: State;
-    readonly isScheduled: boolean;
-    readonly isRunning: boolean;
-    readonly isFinished: boolean;
-    readonly isCanceled: boolean;
-    cancel: () => State;
+    isScheduled: () => boolean;
+    isRunning: () => boolean;
+    isFinished: () => boolean;
+    isCanceled: () => boolean;
+    cancel: () => void;
     params: Params;
     private initialAction;
     private actions;

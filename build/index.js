@@ -1,5 +1,13 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
+exports.__esModule = true;
 var State;
 (function (State) {
     State[State["Scheduled"] = 0] = "Scheduled";
@@ -13,22 +21,22 @@ var ActionType;
     ActionType[ActionType["Rejector"] = 2] = "Rejector";
     ActionType[ActionType["Finalizer"] = 3] = "Finalizer";
 })(ActionType = exports.ActionType || (exports.ActionType = {}));
-const isPromiseLike = (value) => typeof value === "object" && typeof value.then === "function";
-const allArray = (values) => {
-    const results = [];
-    const done = [];
-    return new PromiseExt((resolve, reject) => {
-        const resolveWrapper = (index) => (value) => {
+var isPromiseLike = function (value) { return typeof value === "object" && typeof value.then === "function"; };
+var allArray = function (values) {
+    var results = [];
+    var done = [];
+    return new PromiseExt(function (resolve, reject) {
+        var resolveWrapper = function (index) { return function (value) {
             results[index] = value;
             done[index] = true;
-            for (let n = 0; n < done.length; n++)
+            for (var n = 0; n < done.length; n++)
                 if (done[n] === false)
                     return;
             resolve(results);
-        };
-        const rejectWrapper = (index) => (avalue) => {
-            for (let n = 0; n < values.length; n++) {
-                const value = values[n];
+        }; };
+        var rejectWrapper = function (index) { return function (avalue) {
+            for (var n = 0; n < values.length; n++) {
+                var value = values[n];
                 if (n !== index && done[n] !== false) {
                     if (value instanceof PromiseExt || typeof value.cancel === "function") {
                         value.cancel();
@@ -36,11 +44,11 @@ const allArray = (values) => {
                 }
             }
             reject(avalue);
-        };
-        for (let n = 0; n < values.length; n++) {
-            const value = values[n];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+        }; };
+        for (var n = 0; n < values.length; n++) {
+            var value = values[n];
+            var isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 results.push(value);
                 done.push(false);
                 value.then(resolveWrapper(n), rejectWrapper(n));
@@ -52,21 +60,21 @@ const allArray = (values) => {
         }
     });
 };
-const allObject = (values) => {
-    const results = {};
-    const done = {};
-    return new PromiseExt((resolve, reject) => {
-        const resolveWrapper = (akey) => (value) => {
+var allObject = function (values) {
+    var results = {};
+    var done = {};
+    return new PromiseExt(function (resolve, reject) {
+        var resolveWrapper = function (akey) { return function (value) {
             results[akey] = value;
             done[akey] = true;
-            for (const key in values)
+            for (var key in values)
                 if (done[key] === false)
                     return;
             resolve(results);
-        };
-        const rejectWrapper = (akey) => (avalue) => {
-            for (const key in values) {
-                const value = values[key];
+        }; };
+        var rejectWrapper = function (akey) { return function (avalue) {
+            for (var key in values) {
+                var value = values[key];
                 if (key !== akey && done[akey] !== false) {
                     if (value instanceof PromiseExt || typeof value.cancel === "function") {
                         value.cancel();
@@ -74,11 +82,11 @@ const allObject = (values) => {
                 }
             }
             reject(avalue);
-        };
-        for (const key in values) {
-            const value = values[key];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+        }; };
+        for (var key in values) {
+            var value = values[key];
+            var isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 results[key] = value;
                 done[key] = false;
                 value.then(resolveWrapper(key), rejectWrapper(key));
@@ -90,14 +98,15 @@ const allObject = (values) => {
         }
     });
 };
-const race = (values) => {
-    const cancelablePromises = [];
-    let resolved = false;
-    return new PromiseExt((resolve, reject) => {
-        const resolveWrapper = (value) => {
+var race = function (values) {
+    var cancelablePromises = [];
+    var resolved = false;
+    return new PromiseExt(function (resolve, reject) {
+        var resolveWrapper = function (value) {
             if (resolved)
                 return;
-            for (const promise of cancelablePromises) {
+            for (var _i = 0, cancelablePromises_1 = cancelablePromises; _i < cancelablePromises_1.length; _i++) {
+                var promise = cancelablePromises_1[_i];
                 if (value instanceof PromiseExt || typeof value.cancel === "function") {
                     promise.cancel();
                 }
@@ -105,21 +114,21 @@ const race = (values) => {
             resolve(value);
             resolved = true;
         };
-        const rejectWrapper = (index) => (avalue) => {
+        var rejectWrapper = function (index) { return function (avalue) {
             if (resolved)
                 return;
-            for (let n = 0; n < values.length; n++) {
-                const value = values[n];
+            for (var n = 0; n < values.length; n++) {
+                var value = values[n];
                 if (n !== index && (value instanceof PromiseExt || typeof value.cancel === "function")) {
                     value.cancel();
                 }
             }
             reject(avalue);
-        };
-        for (let n = 0; n < values.length; n++) {
-            const value = values[n];
-            const isPromiseOrPromiseLike = value instanceof PromiseExt || value instanceof Promise || isPromiseLike(value);
-            if (isPromiseOrPromiseLike) {
+        }; };
+        for (var n = 0; n < values.length; n++) {
+            var value = values[n];
+            var isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
+            if (isPromiseExtOrPromiseLike) {
                 if (value instanceof PromiseExt)
                     cancelablePromises.push(value);
                 value.then(resolveWrapper, rejectWrapper(n));
@@ -130,165 +139,155 @@ const race = (values) => {
         }
     });
 };
-class PromiseExt {
-    constructor(initialAction, parameters) {
+var PromiseExt = /** @class */ (function () {
+    function PromiseExt(initialAction, parameters) {
+        var _this = this;
         this.state = State.Scheduled;
-        this.cancel = () => this.state = State.Canceled;
         this.actions = [];
         this.index = 0;
         this.parent = null;
         this.exceptionTimeoutHandler = 0;
-        this.resolve = (value) => {
-            this.result = value;
-            this.hasError = false;
-            this.exec();
+        this.resolve = function (value) {
+            _this.result = value;
+            _this.hasError = false;
+            _this.exec();
         };
-        this.reject = (value) => {
-            this.result = value;
-            this.hasError = true;
-            this.exec();
+        this.reject = function (value) {
+            _this.result = value;
+            _this.hasError = true;
+            _this.exec();
         };
-        this.deferStart = () => {
-            if (this.params.useSetImmediate) {
-                setImmediate(this.start);
+        this.deferStart = function () {
+            if (_this.params.useSetImmediate) {
+                setImmediate(_this.start);
             }
             else {
-                setTimeout(this.start);
+                setTimeout(_this.start);
             }
         };
-        this.start = () => {
-            if (this.isScheduled) {
-                this.state = State.Running;
+        this.start = function () {
+            if (_this.isScheduled) {
+                _this.state = State.Running;
                 try {
-                    this.initialAction(this.resolve, this.reject);
+                    _this.initialAction(_this.resolve, _this.reject);
                 }
                 catch (error) {
-                    this.reject(error);
+                    _this.reject(error);
                 }
             }
         };
-        this.onThen = (action) => {
-            if (this.hasError === false) {
+        this.onThen = function (action) {
+            if (_this.hasError === false) {
                 try {
-                    this.result = action(this.result);
-                    this.hasError = false;
+                    _this.result = action(_this.result);
+                    _this.hasError = false;
                 }
                 catch (error) {
-                    this.result = error;
-                    this.hasError = true;
+                    _this.result = error;
+                    _this.hasError = true;
                 }
             }
         };
-        this.onCatch = (action) => {
-            if (this.hasError === true) {
+        this.onCatch = function (action) {
+            if (_this.hasError === true) {
                 try {
-                    this.result = action(this.result);
-                    this.hasError = false;
+                    _this.result = action(_this.result);
+                    _this.hasError = false;
                 }
                 catch (error) {
-                    this.result = error;
-                    this.hasError = true;
+                    _this.result = error;
+                    _this.hasError = true;
                 }
             }
         };
-        this.onFinally = (action) => {
+        this.onFinally = function (action) {
             try {
                 action(undefined);
             }
             catch (error) {
-                this.result = error;
-                this.hasError = true;
+                _this.result = error;
+                _this.hasError = true;
             }
         };
-        this.onExceptionGenerator = (error, index) => () => {
-            if (index === this.actions.length) {
+        this.onExceptionGenerator = function (error, index) { return function () {
+            if (index === _this.actions.length) {
                 PromiseExt.onUnhandledRejection(error);
             }
-        };
-        this.execRunAction = (actionsItem) => {
+        }; };
+        this.execRunAction = function (actionsItem) {
             switch (actionsItem.type) {
-                case ActionType.Resolver: return this.onThen(actionsItem.action);
-                case ActionType.Rejector: return this.onCatch(actionsItem.action);
-                case ActionType.Finalizer: return this.onFinally(actionsItem.action);
+                case ActionType.Resolver: return _this.onThen(actionsItem.action);
+                case ActionType.Rejector: return _this.onCatch(actionsItem.action);
+                case ActionType.Finalizer: return _this.onFinally(actionsItem.action);
             }
         };
-        this.execHandleResult = () => {
-            if (this.result instanceof PromiseExt) {
-                const resolver = this.hasError ? this.reject : this.resolve;
-                this.result.then(resolver, this.reject).parent = this;
+        this.execHandleResult = function () {
+            if (_this.result instanceof PromiseExt) {
+                var resolver = _this.hasError ? _this.reject : _this.resolve;
+                _this.result.then(resolver, _this.reject).parent = _this;
                 return true;
             }
-            if (this.result instanceof Promise) {
-                const resolver = this.hasError ? this.reject : this.resolve;
-                this.result.then(resolver, this.reject);
+            if (isPromiseLike(_this.result)) {
+                var resolver = _this.hasError ? _this.reject : _this.resolve;
+                _this.result.then(resolver, _this.reject);
                 return true;
             }
-            if (isPromiseLike(this.result)) {
-                const resolver = this.hasError ? this.reject : this.resolve;
-                this.result.then(resolver, this.reject);
-                return true;
-            }
-            if (this.params.deferdActions) {
-                this.params.useSetImmediate ? setImmediate(this.exec) : setTimeout(this.exec);
+            if (_this.params.deferdActions) {
+                _this.params.useSetImmediate ? setImmediate(_this.exec) : setTimeout(_this.exec);
                 return true;
             }
             return false;
         };
-        this.exec = () => {
-            if (this.isCanceled)
+        this.exec = function () {
+            if (_this.isCanceled)
                 return;
-            this.state = State.Running;
-            while (this.index < this.actions.length) {
-                this.execRunAction(this.actions[this.index++]);
-                if (this.execHandleResult())
+            _this.state = State.Running;
+            while (_this.index < _this.actions.length) {
+                _this.execRunAction(_this.actions[_this.index++]);
+                if (_this.execHandleResult())
                     return;
             }
-            if (this.isRunning) {
-                this.state = State.Finished;
-                if (this.hasError && this.parent === null) {
-                    if (this.exceptionTimeoutHandler)
-                        clearTimeout(this.exceptionTimeoutHandler);
-                    const onException = this.onExceptionGenerator(this.result, this.index);
-                    this.exceptionTimeoutHandler = setTimeout(onException);
+            if (_this.isRunning) {
+                _this.state = State.Finished;
+                if (_this.hasError && _this.parent === null) {
+                    if (_this.exceptionTimeoutHandler)
+                        clearTimeout(_this.exceptionTimeoutHandler);
+                    var onException = _this.onExceptionGenerator(_this.result, _this.index);
+                    _this.exceptionTimeoutHandler = setTimeout(onException);
                 }
             }
         };
-        this.addAction = (action, type) => {
-            this.actions.push({ action, type });
-            if (this.isFinished)
-                this.exec();
+        this.addAction = function (action, type) {
+            _this.actions.push({ action: action, type: type });
+            if (_this.isFinished)
+                _this.exec();
         };
-        this.then = (action, rejector) => {
-            this.addAction(action, ActionType.Resolver);
-            return rejector ? this.catch(rejector) : this;
+        this.then = function (action, rejector) {
+            _this.addAction(action, ActionType.Resolver);
+            return rejector ? _this["catch"](rejector) : _this;
         };
-        this.catch = (action, rejector) => {
-            this.addAction(action, ActionType.Rejector);
-            return rejector ? this.catch(rejector) : this;
+        this["catch"] = function (action, rejector) {
+            _this.addAction(action, ActionType.Rejector);
+            return rejector ? _this["catch"](rejector) : _this;
         };
-        this.finally = (action, rejector) => {
-            this.addAction(action, ActionType.Finalizer);
-            return rejector ? this.catch(rejector) : this;
+        this["finally"] = function (action, rejector) {
+            _this.addAction(action, ActionType.Finalizer);
+            return rejector ? _this["catch"](rejector) : _this;
         };
-        this.params = {
-            deferStart: false,
-            deferdActions: false,
-            useSetImmediate: false,
-            ...parameters,
-        };
+        this.params = __assign({ deferStart: false, deferdActions: false, useSetImmediate: false }, parameters);
         this.initialAction = initialAction;
         this.params.deferStart ? this.deferStart() : this.start();
     }
-    get isScheduled() { return this.state === State.Scheduled; }
-    get isRunning() { return this.state === State.Running; }
-    get isFinished() { return this.state === State.Finished; }
-    get isCanceled() { return this.state === State.Canceled; }
-}
-PromiseExt.onUnhandledRejection = (error) => {
-    console.error("Unhandled promise rejection", error);
-};
-PromiseExt.all = (values) => Array.isArray(values) ? allArray(values) : allObject(values);
-PromiseExt.race = race;
+    PromiseExt.onUnhandledRejection = function (error) { return console.error("Unhandled promise rejection", error); };
+    PromiseExt.all = function (values) { return Array.isArray(values) ? allArray(values) : allObject(values); };
+    PromiseExt.race = race;
+    return PromiseExt;
+}());
 exports.PromiseExt = PromiseExt;
-exports.default = PromiseExt;
+PromiseExt.prototype.isScheduled = function () { return this.state === State.Scheduled; };
+PromiseExt.prototype.isRunning = function () { return this.state === State.Running; };
+PromiseExt.prototype.isFinished = function () { return this.state === State.Finished; };
+PromiseExt.prototype.isCanceled = function () { return this.state === State.Canceled; };
+PromiseExt.prototype.cancel = function () { this.state = State.Canceled; };
+exports["default"] = PromiseExt;
 //# sourceMappingURL=index.js.map
