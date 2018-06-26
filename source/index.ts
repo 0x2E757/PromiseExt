@@ -231,7 +231,7 @@ export class PromiseExt<TResult> {
     }
 
     private start = (): void => {
-        if (this.isScheduled) {
+        if (this.state === State.Scheduled) {
             this.state = State.Running;
             try {
                 this.initialAction(this.resolve, this.reject);
@@ -307,13 +307,13 @@ export class PromiseExt<TResult> {
     }
 
     private exec = (): void => {
-        if (this.isCanceled) return;
+        if (this.state === State.Canceled) return;
         this.state = State.Running;
         while (this.index < this.actions.length) {
             this.execRunAction(this.actions[this.index++]);
             if (this.execHandleResult()) return;
         }
-        if (this.isRunning) {
+        if (this.state === State.Running) {
             this.state = State.Finished;
             if (this.hasError && this.parent === null) {
                 if (this.exceptionTimeoutHandler) clearTimeout(this.exceptionTimeoutHandler);
@@ -325,7 +325,7 @@ export class PromiseExt<TResult> {
 
     private addAction = (action: Action, type: ActionType): void => {
         this.actions.push({ action, type });
-        if (this.isFinished) this.exec();
+        if (this.state === State.Finished) this.exec();
     }
 
     public then = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {

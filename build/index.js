@@ -166,7 +166,7 @@ var PromiseExt = /** @class */ (function () {
             }
         };
         this.start = function () {
-            if (_this.isScheduled) {
+            if (_this.state === State.Scheduled) {
                 _this.state = State.Running;
                 try {
                     _this.initialAction(_this.resolve, _this.reject);
@@ -239,7 +239,7 @@ var PromiseExt = /** @class */ (function () {
             return false;
         };
         this.exec = function () {
-            if (_this.isCanceled)
+            if (_this.state === State.Canceled)
                 return;
             _this.state = State.Running;
             while (_this.index < _this.actions.length) {
@@ -247,7 +247,7 @@ var PromiseExt = /** @class */ (function () {
                 if (_this.execHandleResult())
                     return;
             }
-            if (_this.isRunning) {
+            if (_this.state === State.Running) {
                 _this.state = State.Finished;
                 if (_this.hasError && _this.parent === null) {
                     if (_this.exceptionTimeoutHandler)
@@ -259,7 +259,7 @@ var PromiseExt = /** @class */ (function () {
         };
         this.addAction = function (action, type) {
             _this.actions.push({ action: action, type: type });
-            if (_this.isFinished)
+            if (_this.state === State.Finished)
                 _this.exec();
         };
         this.then = function (action, rejector) {
