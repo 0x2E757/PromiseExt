@@ -43,6 +43,8 @@ export type PromiseExtRace = {
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>, ValueOrPromiseLike<T10>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
 };
 
+export type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
+
 const isPromiseLike = (value: any): boolean => typeof value === "object" && typeof value.then === "function";
 
 const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
@@ -175,11 +177,16 @@ const race: PromiseExtRace = (values: any) => {
 
 };
 
+const wrap: PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>): PromiseExt<TResult> => {
+    return new PromiseExt((resolve, reject) => promise.then(resolve, reject), parameters);
+};
+
 export class PromiseExt<TResult> {
 
     public static onUnhandledRejection: UnhandledRejectionHandler = (error: any): any => console.error("Unhandled promise rejection", error);
     public static all: PromiseExtAll = (values: any) => Array.isArray(values) ? allArray(values) : allObject(values);
     public static race: PromiseExtRace = race;
+    public static wrap: PromiseExtWrap = wrap;
 
     public state: State = State.Scheduled;
     public isScheduled!: () => boolean;

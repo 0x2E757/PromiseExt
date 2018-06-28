@@ -49,3 +49,5 @@ import PromiseExt from "@0x2e757/promise-ext";
 `all` — basically same functionality as per regular promise `all` method, but can accept object with promises and will try to cancel promises if any of them will fail;
 
 `race` — basically same functionality as per regular promise `race` method, but will try to cancel promises if any of them will fail;
+
+`wrap` — can be used to wrap regular promise into PromiseExt;

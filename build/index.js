@@ -139,6 +139,9 @@ var race = function (values) {
         }
     });
 };
+var wrap = function (promise, parameters) {
+    return new PromiseExt(function (resolve, reject) { return promise.then(resolve, reject); }, parameters);
+};
 var PromiseExt = /** @class */ (function () {
     function PromiseExt(initialAction, parameters) {
         var _this = this;
@@ -281,6 +284,7 @@ var PromiseExt = /** @class */ (function () {
     PromiseExt.onUnhandledRejection = function (error) { return console.error("Unhandled promise rejection", error); };
     PromiseExt.all = function (values) { return Array.isArray(values) ? allArray(values) : allObject(values); };
     PromiseExt.race = race;
+    PromiseExt.wrap = wrap;
     return PromiseExt;
 }());
 exports.PromiseExt = PromiseExt;

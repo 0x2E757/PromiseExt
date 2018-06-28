@@ -49,10 +49,12 @@ export declare type PromiseExtRace = {
     <T1, T2, T3, T4, T5, T6, T7, T8, T9>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>, ValueOrPromiseLike<T10>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
 };
+export declare type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
 export declare class PromiseExt<TResult> {
     static onUnhandledRejection: UnhandledRejectionHandler;
     static all: PromiseExtAll;
     static race: PromiseExtRace;
+    static wrap: PromiseExtWrap;
     state: State;
     isScheduled: () => boolean;
     isRunning: () => boolean;
