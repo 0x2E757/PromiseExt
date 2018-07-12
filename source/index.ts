@@ -45,7 +45,7 @@ export type PromiseExtRace = {
 
 export type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
 
-const isPromiseLike = (value: any): boolean => typeof value === "object" && typeof value.then === "function";
+const isPromiseLike = (value: any): boolean => value && typeof value.then === "function";
 
 const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
 
