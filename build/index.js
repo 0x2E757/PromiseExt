@@ -21,7 +21,7 @@ var ActionType;
     ActionType[ActionType["Rejector"] = 2] = "Rejector";
     ActionType[ActionType["Finalizer"] = 3] = "Finalizer";
 })(ActionType = exports.ActionType || (exports.ActionType = {}));
-var isPromiseLike = function (value) { return typeof value === "object" && typeof value.then === "function"; };
+var isPromiseLike = function (value) { return value && typeof value.then === "function"; };
 var allArray = function (values) {
     var results = [];
     var done = [];
