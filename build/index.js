@@ -45,6 +45,7 @@ var allArray = function (values) {
             }
             reject(avalue);
         }; };
+        var allDone = true;
         for (var n = 0; n < values.length; n++) {
             var value = values[n];
             var isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
@@ -52,12 +53,15 @@ var allArray = function (values) {
                 results.push(value);
                 done.push(false);
                 value.then(resolveWrapper(n), rejectWrapper(n));
+                allDone = false;
             }
             else {
                 results.push(value);
                 done.push(true);
             }
         }
+        if (allDone)
+            resolve(results);
     });
 };
 var allObject = function (values) {
@@ -83,6 +87,7 @@ var allObject = function (values) {
             }
             reject(avalue);
         }; };
+        var allDone = true;
         for (var key in values) {
             var value = values[key];
             var isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
@@ -90,12 +95,15 @@ var allObject = function (values) {
                 results[key] = value;
                 done[key] = false;
                 value.then(resolveWrapper(key), rejectWrapper(key));
+                allDone = false;
             }
             else {
                 results[key] = value;
                 done[key] = true;
             }
         }
+        if (allDone)
+            resolve(results);
     });
 };
 var race = function (values) {

@@ -73,6 +73,8 @@ const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
             reject(avalue);
         };
 
+        let allDone = true;
+
         for (let n: number = 0; n < values.length; n++) {
             const value = values[n];
             const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
@@ -80,11 +82,14 @@ const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
                 results.push(value);
                 done.push(false);
                 value.then(resolveWrapper(n), rejectWrapper(n));
+                allDone = false;
             } else {
                 results.push(value);
                 done.push(true);
             }
         }
+
+        if (allDone) resolve(results);
 
     });
 
@@ -116,6 +121,8 @@ const allObject = (values: { [Key: string]: ValueOrPromiseLike<any> }): PromiseE
             reject(avalue);
         };
 
+        let allDone = true;
+
         for (const key in values) {
             const value = values[key];
             const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
@@ -123,11 +130,14 @@ const allObject = (values: { [Key: string]: ValueOrPromiseLike<any> }): PromiseE
                 results[key] = value;
                 done[key] = false;
                 value.then(resolveWrapper(key), rejectWrapper(key));
+                allDone = false;
             } else {
                 results[key] = value;
                 done[key] = true;
             }
         }
+
+        if (allDone) resolve(results);
 
     });
 
