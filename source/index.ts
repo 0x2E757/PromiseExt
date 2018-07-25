@@ -10,6 +10,7 @@ export type Params = {
     deferStart: boolean;
     deferdActions: boolean;
     useSetImmediate: boolean;
+    newPromiseOnActions: boolean;
 };
 
 export type UnhandledRejectionHandler = (error: any) => any;
@@ -44,6 +45,9 @@ export type PromiseExtRace = {
 };
 
 export type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
+export type PromiseExtResolve = <TValue>(value: TValue) => PromiseExt<TValue>;
+export type PromiseExtReject = (value: any) => PromiseExt<undefined>;
+export type PromiseExtTimeout = <TValue = any>(delay: number, value?: TValue) => PromiseExt<TValue>;
 
 const isPromiseLike = (value: any): boolean => value && typeof value.then === "function";
 
@@ -191,12 +195,27 @@ const wrap: PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: P
     return new PromiseExt((resolve, reject) => promise.then(resolve, reject), parameters);
 };
 
+const resolve: PromiseExtResolve = <TValue>(value: TValue): PromiseExt<TValue> => {
+    return new PromiseExt((resolve, _reject) => resolve(value));
+};
+
+const reject: PromiseExtReject = (value: any): PromiseExt<undefined> => {
+    return new PromiseExt((_resolve, reject) => reject(value));
+};
+
+const timeout: PromiseExtTimeout = <TValue = any>(delay: number, value?: TValue): PromiseExt<TValue> => {
+    return new PromiseExt((resolve, _reject) => setTimeout(resolve, delay, value));
+};
+
 export class PromiseExt<TResult> {
 
     public static onUnhandledRejection: UnhandledRejectionHandler = (error: any): any => console.error("Unhandled promise rejection", error);
     public static all: PromiseExtAll = (values: any) => Array.isArray(values) ? allArray(values) : allObject(values);
     public static race: PromiseExtRace = race;
     public static wrap: PromiseExtWrap = wrap;
+    public static resolve: PromiseExtResolve = resolve;
+    public static reject: PromiseExtReject = reject;
+    public static timeout: PromiseExtTimeout = timeout;
 
     public state: State = State.Scheduled;
     public isScheduled!: () => boolean;
@@ -221,6 +240,7 @@ export class PromiseExt<TResult> {
             deferStart: false,
             deferdActions: false,
             useSetImmediate: false,
+            newPromiseOnActions: false,
             ...parameters,
         };
         this.initialAction = initialAction;
@@ -346,18 +366,39 @@ export class PromiseExt<TResult> {
     }
 
     public then = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        this.addAction(action, ActionType.Resolver);
-        return rejector ? this.catch(rejector) : this as any;
+        if (this.params.newPromiseOnActions) {
+            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
+            buff.addAction(action, ActionType.Resolver);
+            if (rejector) buff.addAction(rejector, ActionType.Rejector);
+            return buff as PromiseExt<TNewResult>;
+        } else {
+            this.addAction(action, ActionType.Resolver);
+            return rejector ? this.catch(rejector) : this as any;
+        }
     }
 
     public catch = <TNewResult>(action: Action<any, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        this.addAction(action, ActionType.Rejector);
-        return rejector ? this.catch(rejector) : this as any;
+        if (this.params.newPromiseOnActions) {
+            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
+            buff.addAction(action, ActionType.Rejector);
+            if (rejector) buff.addAction(rejector, ActionType.Rejector);
+            return buff as PromiseExt<TNewResult>;
+        } else {
+            this.addAction(action, ActionType.Rejector);
+            return rejector ? this.catch(rejector) : this as any;
+        }
     }
 
-    public finally = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        this.addAction(action, ActionType.Finalizer);
-        return rejector ? this.catch(rejector) : this as any;
+    public finally = <TNewResult>(action: Action<undefined, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
+        if (this.params.newPromiseOnActions) {
+            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
+            buff.addAction(action, ActionType.Finalizer);
+            if (rejector) buff.addAction(rejector, ActionType.Rejector);
+            return buff as PromiseExt<TNewResult>;
+        } else {
+            this.addAction(action, ActionType.Finalizer);
+            return rejector ? this.catch(rejector) : this as any;
+        }
     }
 
 }
@@ -367,5 +408,12 @@ PromiseExt.prototype.isRunning = function (): boolean { return this.state === St
 PromiseExt.prototype.isFinished = function (): boolean { return this.state === State.Finished; };
 PromiseExt.prototype.isCanceled = function (): boolean { return this.state === State.Canceled; };
 PromiseExt.prototype.cancel = function (): void { this.state = State.Canceled; };
+
+if (typeof window !== "undefined" && typeof window.document !== "undefined" && window.hasOwnProperty("PromiseExt") === false) {
+    Object.defineProperty(window, "PromiseExt", {
+        value: PromiseExt,
+        writable: false,
+    });
+}
 
 export default PromiseExt;

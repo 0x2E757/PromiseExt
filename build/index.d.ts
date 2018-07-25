@@ -19,6 +19,7 @@ export declare type Params = {
     deferStart: boolean;
     deferdActions: boolean;
     useSetImmediate: boolean;
+    newPromiseOnActions: boolean;
 };
 export declare type UnhandledRejectionHandler = (error: any) => any;
 export declare type ValueOrPromiseLike<T> = T | PromiseLike<T> | PromiseExt<T>;
@@ -50,11 +51,17 @@ export declare type PromiseExtRace = {
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>, ValueOrPromiseLike<T10>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
 };
 export declare type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
+export declare type PromiseExtResolve = <TValue>(value: TValue) => PromiseExt<TValue>;
+export declare type PromiseExtReject = (value: any) => PromiseExt<undefined>;
+export declare type PromiseExtTimeout = <TValue = any>(delay: number, value?: TValue) => PromiseExt<TValue>;
 export declare class PromiseExt<TResult> {
     static onUnhandledRejection: UnhandledRejectionHandler;
     static all: PromiseExtAll;
     static race: PromiseExtRace;
     static wrap: PromiseExtWrap;
+    static resolve: PromiseExtResolve;
+    static reject: PromiseExtReject;
+    static timeout: PromiseExtTimeout;
     state: State;
     isScheduled: () => boolean;
     isRunning: () => boolean;
@@ -84,7 +91,7 @@ export declare class PromiseExt<TResult> {
     private addAction;
     then: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
     catch: <TNewResult>(action: Action<any, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
-    finally: <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
+    finally: <TNewResult>(action: Action<undefined, TNewResult>, rejector?: Action<any, any> | undefined) => PromiseExt<TNewResult>;
 }
 export default PromiseExt;
 //# sourceMappingURL=index.d.ts.map

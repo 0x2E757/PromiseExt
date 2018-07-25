@@ -51,3 +51,9 @@ import PromiseExt from "@0x2e757/promise-ext";
 `race` — basically same functionality as per regular promise `race` method, but will try to cancel promises if any of them will fail;
 
 `wrap` — can be used to wrap regular promise into PromiseExt;
+
+`resolve` — returns resolved promise with passed value;
+
+`reject` — returns rejected promise with passed value;
+
+`timeout` — returns promise that has setTimeout as its initial action, will be resolved with second argument;

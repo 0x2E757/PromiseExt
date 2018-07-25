@@ -150,6 +150,15 @@ var race = function (values) {
 var wrap = function (promise, parameters) {
     return new PromiseExt(function (resolve, reject) { return promise.then(resolve, reject); }, parameters);
 };
+var resolve = function (value) {
+    return new PromiseExt(function (resolve, _reject) { return resolve(value); });
+};
+var reject = function (value) {
+    return new PromiseExt(function (_resolve, reject) { return reject(value); });
+};
+var timeout = function (delay, value) {
+    return new PromiseExt(function (resolve, _reject) { return setTimeout(resolve, delay, value); });
+};
 var PromiseExt = /** @class */ (function () {
     function PromiseExt(initialAction, parameters) {
         var _this = this;
@@ -274,18 +283,45 @@ var PromiseExt = /** @class */ (function () {
                 _this.exec();
         };
         this.then = function (action, rejector) {
-            _this.addAction(action, ActionType.Resolver);
-            return rejector ? _this["catch"](rejector) : _this;
+            if (_this.params.newPromiseOnActions) {
+                var buff = new PromiseExt(function (resolve, reject) { return _this.hasError ? reject(_this.result) : resolve(_this.result); });
+                buff.addAction(action, ActionType.Resolver);
+                if (rejector)
+                    buff.addAction(rejector, ActionType.Rejector);
+                return buff;
+            }
+            else {
+                _this.addAction(action, ActionType.Resolver);
+                return rejector ? _this["catch"](rejector) : _this;
+            }
         };
         this["catch"] = function (action, rejector) {
-            _this.addAction(action, ActionType.Rejector);
-            return rejector ? _this["catch"](rejector) : _this;
+            if (_this.params.newPromiseOnActions) {
+                var buff = new PromiseExt(function (resolve, reject) { return _this.hasError ? reject(_this.result) : resolve(_this.result); });
+                buff.addAction(action, ActionType.Rejector);
+                if (rejector)
+                    buff.addAction(rejector, ActionType.Rejector);
+                return buff;
+            }
+            else {
+                _this.addAction(action, ActionType.Rejector);
+                return rejector ? _this["catch"](rejector) : _this;
+            }
         };
         this["finally"] = function (action, rejector) {
-            _this.addAction(action, ActionType.Finalizer);
-            return rejector ? _this["catch"](rejector) : _this;
+            if (_this.params.newPromiseOnActions) {
+                var buff = new PromiseExt(function (resolve, reject) { return _this.hasError ? reject(_this.result) : resolve(_this.result); });
+                buff.addAction(action, ActionType.Finalizer);
+                if (rejector)
+                    buff.addAction(rejector, ActionType.Rejector);
+                return buff;
+            }
+            else {
+                _this.addAction(action, ActionType.Finalizer);
+                return rejector ? _this["catch"](rejector) : _this;
+            }
         };
-        this.params = __assign({ deferStart: false, deferdActions: false, useSetImmediate: false }, parameters);
+        this.params = __assign({ deferStart: false, deferdActions: false, useSetImmediate: false, newPromiseOnActions: false }, parameters);
         this.initialAction = initialAction;
         this.params.deferStart ? this.deferStart() : this.start();
     }
@@ -293,6 +329,9 @@ var PromiseExt = /** @class */ (function () {
     PromiseExt.all = function (values) { return Array.isArray(values) ? allArray(values) : allObject(values); };
     PromiseExt.race = race;
     PromiseExt.wrap = wrap;
+    PromiseExt.resolve = resolve;
+    PromiseExt.reject = reject;
+    PromiseExt.timeout = timeout;
     return PromiseExt;
 }());
 exports.PromiseExt = PromiseExt;
@@ -301,5 +340,11 @@ PromiseExt.prototype.isRunning = function () { return this.state === State.Runni
 PromiseExt.prototype.isFinished = function () { return this.state === State.Finished; };
 PromiseExt.prototype.isCanceled = function () { return this.state === State.Canceled; };
 PromiseExt.prototype.cancel = function () { this.state = State.Canceled; };
+if (typeof window !== "undefined" && typeof window.document !== "undefined" && window.hasOwnProperty("PromiseExt") === false) {
+    Object.defineProperty(window, "PromiseExt", {
+        value: PromiseExt,
+        writable: false
+    });
+}
 exports["default"] = PromiseExt;
 //# sourceMappingURL=index.js.map
