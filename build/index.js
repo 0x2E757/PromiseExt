@@ -38,7 +38,7 @@ var allArray = function (values) {
             for (var n = 0; n < values.length; n++) {
                 var value = values[n];
                 if (n !== index && done[n] !== false) {
-                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                         value.cancel();
                     }
                 }
@@ -80,7 +80,7 @@ var allObject = function (values) {
             for (var key in values) {
                 var value = values[key];
                 if (key !== akey && done[akey] !== false) {
-                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                         value.cancel();
                     }
                 }
@@ -115,7 +115,7 @@ var race = function (values) {
                 return;
             for (var _i = 0, cancelablePromises_1 = cancelablePromises; _i < cancelablePromises_1.length; _i++) {
                 var promise = cancelablePromises_1[_i];
-                if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                     promise.cancel();
                 }
             }
@@ -127,7 +127,7 @@ var race = function (values) {
                 return;
             for (var n = 0; n < values.length; n++) {
                 var value = values[n];
-                if (n !== index && (value instanceof PromiseExt || typeof value.cancel === "function")) {
+                if (n !== index && (value instanceof PromiseExt || value && typeof value.cancel === "function")) {
                     value.cancel();
                 }
             }

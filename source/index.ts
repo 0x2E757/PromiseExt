@@ -69,7 +69,7 @@ const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
             for (let n: number = 0; n < values.length; n++) {
                 const value = values[n];
                 if (n !== index && done[n] !== false) {
-                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                         value.cancel();
                     }
                 }
@@ -117,7 +117,7 @@ const allObject = (values: { [Key: string]: ValueOrPromiseLike<any> }): PromiseE
             for (const key in values) {
                 const value = values[key];
                 if (key !== akey && done[akey] !== false) {
-                    if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                         value.cancel();
                     }
                 }
@@ -157,7 +157,7 @@ const race: PromiseExtRace = (values: any) => {
         const resolveWrapper = (value: any): void => {
             if (resolved) return;
             for (const promise of cancelablePromises) {
-                if (value instanceof PromiseExt || typeof value.cancel === "function") {
+                if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
                     promise.cancel();
                 }
             }
@@ -169,7 +169,7 @@ const race: PromiseExtRace = (values: any) => {
             if (resolved) return;
             for (let n: number = 0; n < values.length; n++) {
                 const value = values[n];
-                if (n !== index && (value instanceof PromiseExt || typeof value.cancel === "function")) {
+                if (n !== index && (value instanceof PromiseExt || value && typeof value.cancel === "function")) {
                     value.cancel();
                 }
             }
