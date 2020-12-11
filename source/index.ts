@@ -1,419 +1,127 @@
-export enum State { Scheduled, Running, Finished, Canceled }
+export class PromiseExt<T> {
 
-export type Action<TArgument = any, TResult = any> = (arg: TArgument) => TResult;
-export enum ActionType { Resolver = 1, Rejector = 2, Finalizer = 3 }
-export type ActionStack = { action: Action, type: ActionType }[];
+    private promise: Promise<T>;
+    private parent: PromiseExt<unknown> | null;
+    private children: PromiseExt<unknown>[] | null;
 
-export type InitialAction<TResolveValue> = (resolve: Action<TResolveValue>, reject: Action) => any;
+    public canceled: boolean;
 
-export type Params = {
-    deferStart: boolean;
-    deferdActions: boolean;
-    useSetImmediate: boolean;
-    newPromiseOnActions: boolean;
-};
-
-export type UnhandledRejectionHandler = (error: any) => any;
-
-export type ValueOrPromiseLike<T> = T | PromiseLike<T> | PromiseExt<T>;
-
-export type PromiseExtAll = {
-    <T>(values: { [Key in keyof T]: ValueOrPromiseLike<T[Key]> }): PromiseExt<T>;
-    <T1>(values: [ValueOrPromiseLike<T1>]): PromiseExt<[T1]>;
-    <T1, T2>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>]): PromiseExt<[T1, T2]>;
-    <T1, T2, T3>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>]): PromiseExt<[T1, T2, T3]>;
-    <T1, T2, T3, T4>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>]): PromiseExt<[T1, T2, T3, T4]>;
-    <T1, T2, T3, T4, T5>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>]): PromiseExt<[T1, T2, T3, T4, T5]>;
-    <T1, T2, T3, T4, T5, T6>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>]): PromiseExt<[T1, T2, T3, T4, T5, T6]>;
-    <T1, T2, T3, T4, T5, T6, T7>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>]): PromiseExt<[T1, T2, T3, T4, T5, T6, T7]>;
-    <T1, T2, T3, T4, T5, T6, T7, T8>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>]): PromiseExt<[T1, T2, T3, T4, T5, T6, T7, T8]>;
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>]): PromiseExt<[T1, T2, T3, T4, T5, T6, T7, T8, T9]>;
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>, ValueOrPromiseLike<T10>]): PromiseExt<[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]>;
-};
-
-export type PromiseExtRace = {
-    <T1>(values: [ValueOrPromiseLike<T1>]): PromiseExt<T1>;
-    <T1, T2>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>]): PromiseExt<T1 | T2>;
-    <T1, T2, T3>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>]): PromiseExt<T1 | T2 | T3>;
-    <T1, T2, T3, T4>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>]): PromiseExt<T1 | T2 | T3 | T4>;
-    <T1, T2, T3, T4, T5>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>]): PromiseExt<T1 | T2 | T3 | T4 | T5>;
-    <T1, T2, T3, T4, T5, T6>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6>;
-    <T1, T2, T3, T4, T5, T6, T7>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7>;
-    <T1, T2, T3, T4, T5, T6, T7, T8>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8>;
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(values: [ValueOrPromiseLike<T1>, ValueOrPromiseLike<T2>, ValueOrPromiseLike<T3>, ValueOrPromiseLike<T4>, ValueOrPromiseLike<T5>, ValueOrPromiseLike<T6>, ValueOrPromiseLike<T7>, ValueOrPromiseLike<T8>, ValueOrPromiseLike<T9>, ValueOrPromiseLike<T10>]): PromiseExt<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
-};
-
-export type PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>) => PromiseExt<TResult>;
-export type PromiseExtResolve = <TValue>(value: TValue) => PromiseExt<TValue>;
-export type PromiseExtReject = (value: any) => PromiseExt<undefined>;
-export type PromiseExtTimeout = <TValue = any>(delay: number, value?: TValue) => PromiseExt<TValue>;
-
-const isPromiseLike = (value: any): boolean => value && typeof value.then === "function";
-
-const allArray = (values: ValueOrPromiseLike<any>[]): PromiseExt<any> => {
-
-    const results: any[] = [];
-    const done: boolean[] = [];
-
-    return new PromiseExt((resolve, reject) => {
-
-        const resolveWrapper = (index: number) => (value: any): void => {
-            results[index] = value;
-            done[index] = true;
-            for (let n: number = 0; n < done.length; n++) if (done[n] === false) return;
-            resolve(results);
-        };
-
-        const rejectWrapper = (index: number) => (avalue: any): void => {
-            for (let n: number = 0; n < values.length; n++) {
-                const value = values[n];
-                if (n !== index && done[n] !== false) {
-                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
-                        value.cancel();
-                    }
-                }
-            }
-            reject(avalue);
-        };
-
-        let allDone = true;
-
-        for (let n: number = 0; n < values.length; n++) {
-            const value = values[n];
-            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
-            if (isPromiseExtOrPromiseLike) {
-                results.push(value);
-                done.push(false);
-                value.then(resolveWrapper(n), rejectWrapper(n));
-                allDone = false;
-            } else {
-                results.push(value);
-                done.push(true);
-            }
+    public constructor(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: unknown) => void) => void);
+    public constructor(promise: Promise<T>, parent: PromiseExt<unknown> | null);
+    public constructor(arg1: any, arg2?: any) {
+        if (arg2 === undefined) {
+            this.promise = new Promise(arg1);
+            this.parent = null;
+        } else {
+            this.promise = arg1;
+            this.parent = arg2;
         }
+        this.children = null;
+        this.canceled = false;
+    }
 
-        if (allDone) resolve(results);
+    public get [Symbol.toStringTag](): string {
+        return "PromiseExt";
+    }
 
-    });
+    public then<U, V>(onFulfilled: (value: T) => U | PromiseLike<U>, onRejected?: (reason?: unknown) => V | PromiseLike<V>): PromiseExt<U | V> {
+        if (this.canceled)
+            return this as PromiseExt<any>;
+        const onFulfilledWrapper = (value: T) => this.canceled || onFulfilled(value);
+        const onRejectedWrapper = onRejected ? (reason?: unknown) => this.canceled || onRejected(reason) : undefined;
+        const promise = this.promise.then(onFulfilledWrapper, onRejectedWrapper) as Promise<U | V>;
+        const result = new PromiseExt(promise, this);
+        this.children?.push(result) ?? (this.children = [result]);
+        return result;
+    }
 
-};
+    public catch<U>(onRejected: (reason?: unknown) => U | PromiseLike<U>): PromiseExt<T | U> {
+        if (this.canceled)
+            return this as PromiseExt<any>;
+        const onRejectedWrapper = (reason?: unknown) => this.canceled || onRejected(reason);
+        const promise = this.promise.catch(onRejectedWrapper) as Promise<T | U>;
+        const result = new PromiseExt(promise, this);
+        this.children?.push(result) ?? (this.children = [result]);
+        return result;
+    }
 
-const allObject = (values: { [Key: string]: ValueOrPromiseLike<any> }): PromiseExt<any> => {
+    public finally(onFinally: () => void): PromiseExt<T> {
+        if (this.canceled)
+            return this as PromiseExt<any>;
+        const onFinallyWrapper = () => !this.canceled ? onFinally() : undefined;
+        const promise = this.promise.finally(onFinallyWrapper) as Promise<T>;
+        const result = new PromiseExt(promise, this);
+        this.children?.push(result) ?? (this.children = [result]);
+        return result;
+    }
 
-    const results: { [Key: string]: any } = {};
-    const done: { [Key: string]: boolean } = {};
-
-    return new PromiseExt<any>((resolve, reject) => {
-
-        const resolveWrapper = (akey: string) => (value: any): void => {
-            results[akey] = value;
-            done[akey] = true;
-            for (const key in values) if (done[key] === false) return;
-            resolve(results);
-        };
-
-        const rejectWrapper = (akey: string) => (avalue: any): void => {
-            for (const key in values) {
-                const value = values[key];
-                if (key !== akey && done[akey] !== false) {
-                    if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
-                        value.cancel();
-                    }
-                }
-            }
-            reject(avalue);
-        };
-
-        let allDone = true;
-
-        for (const key in values) {
-            const value = values[key];
-            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
-            if (isPromiseExtOrPromiseLike) {
-                results[key] = value;
-                done[key] = false;
-                value.then(resolveWrapper(key), rejectWrapper(key));
-                allDone = false;
-            } else {
-                results[key] = value;
-                done[key] = true;
-            }
+    public timeout<U = undefined>(delay: number, value?: U): PromiseExt<U extends undefined ? T : U> {
+        if (this.canceled)
+            return this as PromiseExt<any>;
+        if (value === undefined) {
+            const onFinallyWrapper = () => new Promise(resolve => setTimeout(resolve, delay));
+            const promise = this.promise.finally(onFinallyWrapper) as Promise<T>;
+            const result = new PromiseExt(promise, this) as PromiseExt<U extends undefined ? T : U>;
+            this.children?.push(result) ?? (this.children = [result]);
+            return result;
+        } else {
+            const onFulfilledWrapper = () => new Promise(resolve => setTimeout(resolve, delay, value));
+            const promise = this.promise.then(onFulfilledWrapper) as Promise<U>;
+            const result = new PromiseExt(promise, this) as PromiseExt<U extends undefined ? T : U>;
+            this.children?.push(result) ?? (this.children = [result]);
+            return result;
         }
+    }
 
-        if (allDone) resolve(results);
+    public cancel(cancelParent: boolean = true): void {
+        this.canceled = true;
+        if (this.children)
+            for (const child of this.children)
+                if (!child.canceled)
+                    child.cancel(false);
+        if (cancelParent)
+            this.parent?.cancel();
+    }
 
-    });
+    public static wrap<T>(promise: Promise<T>): PromiseExt<T> {
+        return new PromiseExt(promise, null);
+    }
 
-};
+    public static resolve<T = undefined>(value?: T | PromiseLike<T>): PromiseExt<T> {
+        return new PromiseExt(Promise.resolve(value) as Promise<T>, null);
+    }
 
-const race: PromiseExtRace = (values: any) => {
+    public static reject<T = undefined>(reason?: T): PromiseExt<T> {
+        return new PromiseExt(Promise.reject(reason) as Promise<T>, null);
+    }
 
-    const cancelablePromises: PromiseExt<any>[] = [];
-    let resolved: boolean = false;
-
-    return new PromiseExt<any>((resolve, reject) => {
-
-        const resolveWrapper = (value: any): void => {
-            if (resolved) return;
-            for (const promise of cancelablePromises) {
-                if (value instanceof PromiseExt || value && typeof value.cancel === "function") {
-                    promise.cancel();
-                }
-            }
-            resolve(value);
-            resolved = true;
-        };
-
-        const rejectWrapper = (index: number) => (avalue: any): void => {
-            if (resolved) return;
-            for (let n: number = 0; n < values.length; n++) {
-                const value = values[n];
-                if (n !== index && (value instanceof PromiseExt || value && typeof value.cancel === "function")) {
+    public static all<T extends unknown[]>(values: [...{ [K in keyof T]: T[K] | PromiseLike<T[K]> }]): PromiseExt<T> {
+        const promise = Promise.all(values).catch((reason) => {
+            for (const value of values)
+                if (value instanceof PromiseExt)
                     value.cancel();
-                }
-            }
-            reject(avalue);
-        };
-
-        for (let n: number = 0; n < values.length; n++) {
-            const value = values[n];
-            const isPromiseExtOrPromiseLike = value instanceof PromiseExt || isPromiseLike(value);
-            if (isPromiseExtOrPromiseLike) {
-                if (value instanceof PromiseExt) cancelablePromises.push(value);
-                value.then(resolveWrapper, rejectWrapper(n));
-            } else {
-                return resolveWrapper(value);
-            }
-        }
-
-    });
-
-};
-
-const wrap: PromiseExtWrap = <TResult>(promise: Promise<TResult>, parameters?: Partial<Params>): PromiseExt<TResult> => {
-    return new PromiseExt((resolve, reject) => promise.then(resolve, reject), parameters);
-};
-
-const resolve: PromiseExtResolve = <TValue>(value: TValue): PromiseExt<TValue> => {
-    return new PromiseExt((resolve, _reject) => resolve(value));
-};
-
-const reject: PromiseExtReject = (value: any): PromiseExt<undefined> => {
-    return new PromiseExt((_resolve, reject) => reject(value));
-};
-
-const timeout: PromiseExtTimeout = <TValue = any>(delay: number, value?: TValue): PromiseExt<TValue> => {
-    return new PromiseExt((resolve, _reject) => setTimeout(resolve, delay, value));
-};
-
-export class PromiseExt<TResult> {
-
-    public static onUnhandledRejection: UnhandledRejectionHandler = (error: any): any => console.error("Unhandled promise rejection", error);
-    public static all: PromiseExtAll = (values: any) => Array.isArray(values) ? allArray(values) : allObject(values);
-    public static race: PromiseExtRace = race;
-    public static wrap: PromiseExtWrap = wrap;
-    public static resolve: PromiseExtResolve = resolve;
-    public static reject: PromiseExtReject = reject;
-    public static timeout: PromiseExtTimeout = timeout;
-
-    public state: State = State.Scheduled;
-    public isScheduled!: () => boolean;
-    public isRunning!: () => boolean;
-    public isFinished!: () => boolean;
-    public isCanceled!: () => boolean;
-    public cancel!: () => void;
-
-    public params: Params;
-
-    private initialAction: InitialAction<TResult>;
-    private actions: ActionStack = [];
-    private index: number = 0;
-    private parent: PromiseExt<any> | null = null;
-
-    private result!: TResult;
-    private hasError!: boolean;
-    private exceptionTimeoutHandler: number = 0;
-
-    constructor(initialAction: InitialAction<TResult>, parameters?: Partial<Params>) {
-        this.params = {
-            deferStart: false,
-            deferdActions: false,
-            useSetImmediate: false,
-            newPromiseOnActions: false,
-            ...parameters,
-        };
-        this.initialAction = initialAction;
-        this.params.deferStart ? this.deferStart() : this.start();
+            return Promise.reject(reason);
+        });
+        return new PromiseExt(promise as PromiseExt<T>, null);
     }
 
-    private resolve = (value: any): void => {
-        this.result = value;
-        this.hasError = false;
-        this.exec();
+    public static race<T>(values: T[]): PromiseExt<T extends PromiseLike<infer U> ? U : T> {
+        const promise = Promise.race(values);
+        return new PromiseExt(promise as PromiseExt<T extends PromiseLike<infer U> ? U : T>, null);
     }
 
-    private reject = (value: any): void => {
-        this.result = value;
-        this.hasError = true;
-        this.exec();
+    public static allSettled<T extends unknown[]>(values: [...{ [K in keyof T]: T[K] | PromiseLike<T[K]> }]): PromiseExt<[...{ [K in keyof T]: { status: "fulfilled", value: T[K] } | { status: "rejected", reason: unknown } }]> {
+        // @ts-ignore : Method "allSettled" may not exist, polyfill might be required.
+        const promise = Promise.allSettled(values);
+        return new PromiseExt(promise as Promise<[...{ [K in keyof T]: { status: "fulfilled", value: T[K] } | { status: "rejected", reason: unknown } }]>, null);
     }
 
-    private deferStart = () => {
-        if (this.params.useSetImmediate) {
-            setImmediate(this.start);
-        } else {
-            setTimeout(this.start);
-        }
+    public static any<T>(values: T[]): PromiseExt<T extends PromiseLike<infer U> ? U : T> {
+        // @ts-ignore : Method "any" may not exist, polyfill might be required.
+        const promise = Promise.any(values);
+        return new PromiseExt(promise as PromiseExt<T extends PromiseLike<infer U> ? U : T>, null);
     }
 
-    private start = (): void => {
-        if (this.state === State.Scheduled) {
-            this.state = State.Running;
-            try {
-                this.initialAction(this.resolve, this.reject);
-            } catch (error) {
-                this.reject(error);
-            }
-        }
-    }
-
-    private onThen = (action: Action): void => {
-        if (this.hasError === false) {
-            try {
-                this.result = action(this.result);
-                this.hasError = false;
-            } catch (error) {
-                this.result = error;
-                this.hasError = true;
-            }
-        }
-    }
-
-    private onCatch = (action: Action): void => {
-        if (this.hasError === true) {
-            try {
-                this.result = action(this.result);
-                this.hasError = false;
-            } catch (error) {
-                this.result = error;
-                this.hasError = true;
-            }
-        }
-    }
-
-    private onFinally = (action: Action): void => {
-        try {
-            action(undefined);
-        } catch (error) {
-            this.result = error;
-            this.hasError = true;
-        }
-    }
-
-    private onExceptionGenerator = (error: any, index: number) => () => {
-        if (index === this.actions.length) {
-            PromiseExt.onUnhandledRejection(error);
-        }
-    }
-
-    private execRunAction = (actionsItem: { action: Action, type: ActionType }): void => {
-        switch (actionsItem.type) {
-            case ActionType.Resolver: return this.onThen(actionsItem.action);
-            case ActionType.Rejector: return this.onCatch(actionsItem.action);
-            case ActionType.Finalizer: return this.onFinally(actionsItem.action);
-        }
-    }
-
-    private execHandleResult = (): boolean => {
-        if (this.result instanceof PromiseExt) {
-            const resolver = this.hasError ? this.reject : this.resolve;
-            this.result.then(resolver, this.reject).parent = this;
-            return true;
-        }
-        if (isPromiseLike(this.result)) {
-            const resolver = this.hasError ? this.reject : this.resolve;
-            (this.result as any).then(resolver, this.reject);
-            return true;
-        }
-        if (this.params.deferdActions) {
-            this.params.useSetImmediate ? setImmediate(this.exec) : setTimeout(this.exec);
-            return true;
-        }
-        return false;
-    }
-
-    private exec = (): void => {
-        if (this.state === State.Canceled) return;
-        this.state = State.Running;
-        while (this.index < this.actions.length) {
-            this.execRunAction(this.actions[this.index++]);
-            if (this.execHandleResult()) return;
-        }
-        if (this.state === State.Running) {
-            this.state = State.Finished;
-            if (this.hasError && this.parent === null) {
-                if (this.exceptionTimeoutHandler) clearTimeout(this.exceptionTimeoutHandler);
-                const onException = this.onExceptionGenerator(this.result, this.index);
-                this.exceptionTimeoutHandler = setTimeout(onException);
-            }
-        }
-    }
-
-    private addAction = (action: Action, type: ActionType): void => {
-        this.actions.push({ action, type });
-        if (this.state === State.Finished) this.exec();
-    }
-
-    public then = <TNewResult>(action: Action<TResult, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        if (this.params.newPromiseOnActions) {
-            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
-            buff.addAction(action, ActionType.Resolver);
-            if (rejector) buff.addAction(rejector, ActionType.Rejector);
-            return buff as PromiseExt<TNewResult>;
-        } else {
-            this.addAction(action, ActionType.Resolver);
-            return rejector ? this.catch(rejector) : this as any;
-        }
-    }
-
-    public catch = <TNewResult>(action: Action<any, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        if (this.params.newPromiseOnActions) {
-            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
-            buff.addAction(action, ActionType.Rejector);
-            if (rejector) buff.addAction(rejector, ActionType.Rejector);
-            return buff as PromiseExt<TNewResult>;
-        } else {
-            this.addAction(action, ActionType.Rejector);
-            return rejector ? this.catch(rejector) : this as any;
-        }
-    }
-
-    public finally = <TNewResult>(action: Action<undefined, TNewResult>, rejector?: Action): PromiseExt<TNewResult> => {
-        if (this.params.newPromiseOnActions) {
-            const buff = new PromiseExt((resolve, reject) => this.hasError ? reject(this.result) : resolve(this.result));
-            buff.addAction(action, ActionType.Finalizer);
-            if (rejector) buff.addAction(rejector, ActionType.Rejector);
-            return buff as PromiseExt<TNewResult>;
-        } else {
-            this.addAction(action, ActionType.Finalizer);
-            return rejector ? this.catch(rejector) : this as any;
-        }
-    }
-
-}
-
-PromiseExt.prototype.isScheduled = function (): boolean { return this.state === State.Scheduled; };
-PromiseExt.prototype.isRunning = function (): boolean { return this.state === State.Running; };
-PromiseExt.prototype.isFinished = function (): boolean { return this.state === State.Finished; };
-PromiseExt.prototype.isCanceled = function (): boolean { return this.state === State.Canceled; };
-PromiseExt.prototype.cancel = function (): void { this.state = State.Canceled; };
-
-if (typeof window !== "undefined" && typeof window.document !== "undefined" && window.hasOwnProperty("PromiseExt") === false) {
-    Object.defineProperty(window, "PromiseExt", {
-        value: PromiseExt,
-        writable: false,
-    });
 }
 
 export default PromiseExt;
