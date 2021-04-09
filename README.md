@@ -2,7 +2,7 @@
 
 Lightweight native promise wrapper that can be cancelled. Has no dependencies on other libraries.
 
-TypeScript code transpiled to ES2018 JavaScript.
+TypeScript code transpiled to ES2015 JavaScript.
 
 ## Install
 
@@ -12,13 +12,14 @@ npm i @0x2e757/promise-ext
 
 ## Usage
 
-New class `PromiseExt` mostly will by used same as regular ES2018 `Promise`.
+New class `PromiseExt` mostly will by used same as regular `Promise`.
 
 ### How to import
 
 ```typescript
 import PromiseExt from "@0x2e757/promise-ext";
 ```
+
 ### Unique methods
 
 `timeout` — wrapper around resolver using `setTimeout`;
