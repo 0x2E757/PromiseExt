@@ -16,7 +16,7 @@
     ],
     "main": "./build/index.js",
     "scripts": {
-        "build": "npx tsc"
+        "build": "tsc"
     },
     "devDependencies": {
         "@types/node": "^14.14.8",
