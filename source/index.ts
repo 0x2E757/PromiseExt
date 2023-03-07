@@ -7,9 +7,9 @@ export class PromiseExt<T> {
     public canceled: boolean;
 
     public constructor(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: unknown) => void) => void);
-    public constructor(promise: Promise<T>, parent: PromiseExt<unknown> | null);
-    public constructor(arg1: any, arg2?: any) {
-        if (arg2 === undefined) {
+    public constructor(promise: Promise<T>, parent?: PromiseExt<unknown> | null);
+    public constructor(arg1: any, arg2: any = null) {
+        if (arg1.then === undefined) {
             this.promise = new Promise(arg1);
             this.parent = null;
         } else {
