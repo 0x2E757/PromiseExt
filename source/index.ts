@@ -1,4 +1,4 @@
-export class PromiseExt<T> {
+export class PromiseExt<T = any> {
 
     private promise: Promise<T>;
     private parent: PromiseExt<unknown> | null;
