@@ -122,6 +122,10 @@ export class PromiseExt<T = any> {
         return new PromiseExt(promise as PromiseExt<T extends PromiseLike<infer U> ? U : T>, null);
     }
 
+    public static timeout<T = undefined>(delay: number, value?: T | PromiseLike<T>): PromiseExt<T> {
+        return new PromiseExt(Promise.resolve(value) as Promise<T>, null).timeout(delay);
+    }
+
 }
 
 export default PromiseExt;
