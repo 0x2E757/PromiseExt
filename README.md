@@ -26,7 +26,7 @@ npm install promise-ext
 import { PromiseExt } from "promise-ext";
 
 const promise = new PromiseExt((resolve) => {
-    resolve("Hello, world!");
+  resolve("Hello, world!");
 });
 
 promise.then(console.log); // Output: "Hello, world!"
@@ -47,16 +47,13 @@ promise.then(console.log); // Output: "Hello, world!" after 1 second
 ```typescript
 import { PromiseExt } from "promise-ext";
 
-const promise = new PromiseExt<string>((resolve) => {
-  setTimeout(resolve, 2000, "Success");
-});
+const promise = new PromiseExt<string>();
 
+promise.then(console.log);
 console.log(promise.state); // Output: "pending"
 
-promise.then((value) => {
-  console.log(value); // Output: "Success" after 2 seconds
-  console.log(promise.state); // Output: "resolved"
-});
+promise.resolve("Hello, world!"); // Output: "Hello, world!"
+console.log(promise.state); // Output: "resolved"
 ```
 
 ### Canceling Promises
@@ -65,9 +62,10 @@ promise.then((value) => {
 import { PromiseExt } from "promise-ext";
 
 const promise = new PromiseExt<string>((resolve, reject, cancel) => {
-  setTimeout(resolve, 2000, "Success");
-  setTimeout(cancel, 1000);
+  setTimeout(resolve, 2000, "Success"); // Outputs warning that promise was canceled
 });
+
+promise.cancel();
 
 console.log(promise.state); // Output: "canceled"
 ```

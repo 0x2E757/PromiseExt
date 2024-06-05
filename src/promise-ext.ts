@@ -8,7 +8,7 @@ export class PromiseExt<T> extends Promise<T> {
    * Creates a promise that is resolved after the delay (ms).
    */
   static timeout = <T = void>(delay?: number, value?: T) => {
-    new Promise((resolve) => setTimeout(resolve, delay ?? 0, value));
+    return new Promise((resolve) => setTimeout(resolve, delay ?? 0, value));
   };
 
   // Since Promise constructor can delay (or do some weird magic looking like delay) executor,
