@@ -1,6 +1,6 @@
 {
     "name": "@0x2e757/promise-ext",
-    "version": "2.1.0",
+    "version": "3.0.0",
     "description": "Promises extended",
     "author": "Eric Kevrel",
     "license": "MIT",
@@ -8,18 +8,13 @@
     "keywords": [
         "promise",
         "promises",
+        "resolvable",
+        "rejectable",
         "cancelable",
         "cancellable",
         "extended",
         "fast",
         "typescript"
     ],
-    "main": "./build/index.js",
-    "scripts": {
-        "build": "tsc"
-    },
-    "devDependencies": {
-        "@types/node": "^20.10.3",
-        "typescript": "^5.3.2"
-    }
+    "main": "./src/index.ts"
 }

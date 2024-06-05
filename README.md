@@ -1,33 +1,101 @@
 # PromiseExt
 
-Lightweight native promise wrapper that can be cancelled. Has no dependencies on other libraries.
+PromiseExt is an extension of the native JavaScript `Promise` object, providing additional functionality for managing promise state and handling common use cases such as timeouts, cancellations, and state inspections. This package is designed specifically for TypeScript-based projects.
 
-TypeScript code transpiled to ES2015 JavaScript.
+## Features
 
-## Install
+**Timeout:** Create promise that resolve after a specified delay.
+
+**State Management:** Track the state of promise (pending, resolving, resolved, rejecting, rejected, canceled).
+
+**Cancellation:** Cancel promise at any point.
+
+**Resolve/Reject as properties:** Methods to resolve/reject promise at any point outside of executor (can be omitted).
+
+## Installation
 
 ```bash
-npm i @0x2e757/promise-ext
+npm install promise-ext
 ```
 
-## Usage
+## Examples
 
-New class `PromiseExt` mostly will by used same as regular `Promise`.
-
-### How to import
+### Basic
 
 ```typescript
-import PromiseExt from "@0x2e757/promise-ext";
+import { PromiseExt } from "promise-ext";
+
+const promise = new PromiseExt((resolve) => {
+    resolve("Hello, world!");
+});
+
+promise.then(console.log); // Output: "Hello, world!"
 ```
 
-### Unique methods
+### Timeout
 
-`timeout` — wrapper around resolver using `setTimeout`;
+```typescript
+import { PromiseExt } from "promise-ext";
 
-`cancel` — function for preventing promise or its chain actions execution;
+const promise = PromiseExt.timeout(1000, "Hello, world!");
 
-### Unique static functions
+promise.then(console.log); // Output: "Hello, world!" after 1 second
+```
 
-`wrap` — creates wrapper for provided promise;
+### Creating and Managing Promises
 
-<sub>\* `all` function will cancel all cancellable promises if any of them will fail.</sub>
+```typescript
+import { PromiseExt } from "promise-ext";
+
+const promise = new PromiseExt<string>((resolve) => {
+  setTimeout(resolve, 2000, "Success");
+});
+
+console.log(promise.state); // Output: "pending"
+
+promise.then((value) => {
+  console.log(value); // Output: "Success" after 2 seconds
+  console.log(promise.state); // Output: "resolved"
+});
+```
+
+### Canceling Promises
+
+```typescript
+import { PromiseExt } from "promise-ext";
+
+const promise = new PromiseExt<string>((resolve, reject, cancel) => {
+  setTimeout(resolve, 2000, "Success");
+  setTimeout(cancel, 1000);
+});
+
+console.log(promise.state); // Output: "canceled"
+```
+
+## API
+
+#### Static Methods
+
+`timeout<T>(delay?: number, value?: T): Promise<T>`: Creates a promise that resolves after the specified delay.
+
+#### Instance Properties
+
+`state: PromiseState` — The current state of the promise (pending, resolving, resolved, rejecting, rejected, canceled).
+
+`resolve: (value: T) => void` — Wrapper for resolving the promise.
+
+`reject: (reason: any) => void` — Wrapper for rejecting the promise.
+
+`cancel: () => void` — Wrapper for canceling the promise.
+
+`isPending: boolean` — Checks if the promise is pending.
+
+`isResolved: boolean` — Checks if the promise is resolved.
+
+`isRejected: boolean` — Checks if the promise is rejected.
+
+`isCanceled: boolean` — Checks if the promise is canceled.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
