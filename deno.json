@@ -1,0 +1,5 @@
+{
+    "name": "@0x2e757/promise-ext",
+    "version": "3.0.1",
+    "exports": "./mod.ts"
+}
