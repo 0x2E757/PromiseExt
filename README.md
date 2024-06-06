@@ -14,8 +14,30 @@ PromiseExt is an extension of the native JavaScript `Promise` object, providing 
 
 ## Installation
 
+### Node.js
+
 ```bash
-npm install promise-ext
+npm install @0x2e757/promise-ext
+```
+
+```typescript
+import { PromiseExt } from "@0x2e757/promise-ext";
+```
+
+### Deno
+
+```bash
+deno add @0x2e757/promise-ext
+```
+
+```typescript
+import { PromiseExt } from "@0x2e757/promise-ext";
+```
+
+or
+
+```typescript
+import { PromiseExt } from "jsr:@0x2e757/promise-ext";
 ```
 
 ## Examples
@@ -23,7 +45,7 @@ npm install promise-ext
 ### Basic
 
 ```typescript
-import { PromiseExt } from "promise-ext";
+import { PromiseExt } from "@0x2e757/promise-ext";
 
 const promise = new PromiseExt((resolve) => {
   resolve("Hello, world!");
@@ -35,7 +57,7 @@ promise.then(console.log); // Output: "Hello, world!"
 ### Timeout
 
 ```typescript
-import { PromiseExt } from "promise-ext";
+import { PromiseExt } from "@0x2e757/promise-ext";
 
 const promise = PromiseExt.timeout(1000, "Hello, world!");
 
@@ -45,7 +67,7 @@ promise.then(console.log); // Output: "Hello, world!" after 1 second
 ### Creating and Managing Promises
 
 ```typescript
-import { PromiseExt } from "promise-ext";
+import { PromiseExt } from "@0x2e757/promise-ext";
 
 const promise = new PromiseExt<string>();
 
@@ -59,7 +81,7 @@ console.log(promise.state); // Output: "resolved"
 ### Canceling Promises
 
 ```typescript
-import { PromiseExt } from "promise-ext";
+import { PromiseExt } from "@0x2e757/promise-ext";
 
 const promise = new PromiseExt<string>((resolve, reject, cancel) => {
   setTimeout(resolve, 2000, "Success"); // Outputs warning that promise was canceled
