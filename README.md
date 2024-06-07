@@ -1,6 +1,10 @@
 # PromiseExt
 
-PromiseExt is an extension of the native JavaScript `Promise` object, providing additional functionality for managing promise state and handling common use cases such as timeouts, cancellations, and state inspections. This package is designed specifically for TypeScript-based projects.
+Extension of the native JavaScript `Promise` class, providing additional functionality for managing promise state and handling common use cases such as timeouts, cancellations, and state inspections. This package is designed specifically for TypeScript-based projects.
+
+The `PromiseExt` class handles the native promise as a private property instead of extending the `Promise` class. This approach prevents issues that can arise from third-party library manipulations with the native `Promise` class and its methods.
+
+Code must target ES2018 or newer because of getters and the `finally` method.
 
 ## Features
 
@@ -94,9 +98,13 @@ console.log(promise.state); // Output: "canceled"
 
 ## API
 
+#### Static Properties
+
+`static logger?: Logger` - Logger function for logging warnings. Set to `undefined` to suppress warnings. Uses `console.warn` by default.
+
 #### Static Methods
 
-`timeout<T>(delay?: number, value?: T): Promise<T>`: Creates a promise that resolves after the specified delay.
+`timeout<T>(delay?: number, value?: T): Promise<T>` - Creates a promise that resolves after the specified delay.
 
 #### Instance Properties
 
