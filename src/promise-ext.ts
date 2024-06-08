@@ -48,7 +48,7 @@ export class PromiseExt<T> {
      * Creates a `PromiseExt` instance that resolves after a delay.
      */
     static timeout<T>(delay?: number, ...args: Parameters<Resolve<T>>) {
-        return new PromiseExt((resolve) => setTimeout(resolve, delay, ...args));
+        return new PromiseExt<T>((resolve) => setTimeout(resolve, delay, ...args));
     }
 
     constructor(executor?: PromiseExecutor<T>) {

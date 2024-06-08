@@ -104,7 +104,7 @@ console.log(promise.state); // Output: "canceled"
 
 #### Static Methods
 
-`timeout<T>(delay?: number, value?: T): Promise<T>` - Creates a promise that resolves after the specified delay.
+`timeout<T>(delay?: number, value?: T): PromiseExt<T>` - Creates a promise that resolves after the specified delay.
 
 #### Instance Properties
 
