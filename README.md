@@ -4,7 +4,7 @@ Extension of the native JavaScript `Promise` class, providing additional functio
 
 The `PromiseExt` class handles the native promise as a private property instead of extending the `Promise` class. This approach prevents issues that can arise from third-party library manipulations with the native `Promise` class and its methods.
 
-Code must target ES2018 or newer because of getters and the `finally` method.
+Code must target ES2021 (or include the lib) or newer because of `Promise.any` method.
 
 ## Features
 
