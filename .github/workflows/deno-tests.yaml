@@ -1,0 +1,14 @@
+name: Run Deno tests
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+      - name: Run tests
+        run: deno test
