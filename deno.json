@@ -1,5 +1,6 @@
 {
     "name": "@0x2e757/promise-ext",
-    "version": "4.0.1",
-    "exports": "./src/index.ts"
+    "version": "4.1.0",
+    "exports": "./src/index.ts",
+    "lock": false
 }

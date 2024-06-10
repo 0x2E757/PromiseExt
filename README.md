@@ -10,7 +10,7 @@ Code must target ES2018 or newer because of getters and the `finally` method.
 
 **Timeout:** Create promise that resolve after a specified delay.
 
-**State Management:** Track the state of promise (pending, resolving, resolved, rejecting, rejected, canceled).
+**State Management:** Track the state of promise (`pending`, `resolved`, `rejected` or `canceled`).
 
 **Cancellation:** Cancel promise at any point.
 
@@ -108,7 +108,7 @@ console.log(promise.state); // Output: "canceled"
 
 #### Instance Properties
 
-`state: PromiseState` — The current state of the promise (pending, resolving, resolved, rejecting, rejected, canceled).
+`state: PromiseState` — The current state of the promise (`pending`, `resolved`, `rejected` or `canceled`).
 
 `resolve: (value: T) => void` — Wrapper for resolving the promise.
 

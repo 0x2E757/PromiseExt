@@ -7,9 +7,8 @@ import { State } from "./enums.ts";
 export class PromiseExt<T> {
     #state: State;
     #inner: Promise<T>;
-    #resolve?: Resolve<T>;
-    #reject?: Reject;
-    #data?: unknown;
+    #resolve: Resolve<T>;
+    #reject: Reject;
 
     /**
      * Logger function for logging warnings. 
@@ -21,7 +20,7 @@ export class PromiseExt<T> {
      * Creates a resolved `PromiseExt` instance.
      */
     static resolve<T>(...args: Parameters<Resolve<T>>) {
-        const promise = new PromiseExt();
+        const promise = new PromiseExt<T>();
         promise.resolve(...args);
         return promise;
     }
@@ -29,8 +28,8 @@ export class PromiseExt<T> {
     /**
      * Creates a rejected `PromiseExt` instance.
      */
-    static reject(...args: Parameters<Reject>) {
-        const promise = new PromiseExt();
+    static reject<T = never>(...args: Parameters<Reject>) {
+        const promise = new PromiseExt<T>();
         promise.reject(...args);
         return promise;
     }
@@ -38,8 +37,8 @@ export class PromiseExt<T> {
     /**
      * Creates a canceled `PromiseExt` instance.
      */
-    static cancel(...args: Parameters<Cancel>) {
-        const promise = new PromiseExt();
+    static cancel<T = never>(...args: Parameters<Cancel>) {
+        const promise = new PromiseExt<T>();
         promise.cancel(...args);
         return promise;
     }
@@ -47,57 +46,72 @@ export class PromiseExt<T> {
     /**
      * Creates a `PromiseExt` instance that resolves after a delay.
      */
-    static timeout<T>(delay?: number, ...args: Parameters<Resolve<T>>) {
-        return new PromiseExt<T>((resolve) => setTimeout(resolve, delay, ...args));
+    static timeout<T = never>(delay?: number, ...args: Partial<Parameters<Resolve<T>>>) {
+        const promise = new PromiseExt<T>();
+        setTimeout(promise.resolve, delay, ...args);
+        return promise;
+    }
+
+    /**
+     * Same as `Promise.all` but returns a `PromiseExt` instance.
+     */
+    static all<T extends unknown[]>(...args: Parameters<typeof Promise.all<T>>) {
+        type TResult = ReturnType<typeof Promise.all<T>> extends PromiseLike<infer U> ? U : unknown;
+        return PromiseExt.resolve<TResult>(Promise.all(...args));
+    }
+
+    /**
+     * Same as `Promise.allSettled` but returns a `PromiseExt` instance.
+     */
+    static allSettled<T extends unknown[]>(...args: Parameters<typeof Promise.allSettled<T>>) {
+        type TResult = ReturnType<typeof Promise.allSettled<T>> extends PromiseLike<infer U> ? U : unknown;
+        return PromiseExt.resolve<TResult>(Promise.allSettled(...args));
+    }
+
+    /**
+     * Same as `Promise.any` but returns a `PromiseExt` instance.
+     */
+    static any<T extends unknown[]>(...args: Parameters<typeof Promise.any<T>>) {
+        type TResult = ReturnType<typeof Promise.any<T>> extends PromiseLike<infer U> ? U : unknown;
+        return PromiseExt.resolve<TResult>(Promise.any(...args));
+    }
+
+    /**
+     * Same as `Promise.race` but returns a `PromiseExt` instance.
+     */
+    static race<T extends unknown[]>(...args: Parameters<typeof Promise.race<T>>) {
+        type TResult = ReturnType<typeof Promise.race<T>> extends PromiseLike<infer U> ? U : unknown;
+        return PromiseExt.resolve<TResult>(Promise.race(...args));
     }
 
     constructor(executor?: PromiseExecutor<T>) {
-        const executorWrapper = this.#getExecutorWrapper(executor);
-        this.#state = State.Pending;
-        this.#inner = new Promise(executorWrapper)
-    }
-
-    /**
-     * Wraps the executor function to capture `resolve` and `reject` functions.
-     * Passes custom `cancel` method as third argument to the executor.
-     */
-    #getExecutorWrapper(executor?: PromiseExecutor<T>) {
-        return (resolve: Resolve<T>, reject: Reject) => {
+        if ("withResolvers" in Promise && Promise.withResolvers) {
+            // Proper ESNext approach
+            // @ts-ignore since will error with target lower than ESNext
+            const { promise, resolve, reject } = Promise.withResolvers<T>();
+            this.#inner = promise;
             this.#resolve = resolve;
             this.#reject = reject;
-            executor?.(this.resolve, this.reject, this.cancel);
+        } else {
+            // Dirty hack approach
+            let resolve!: Resolve<T>, reject!: Reject;
+            const promise = new Promise<T>((...args) => [resolve, reject] = args);
+            this.#inner = promise;
+            this.#resolve = resolve;
+            this.#reject = reject;
         }
-    }
-
-    /**
-     * Tries to resolve the promise if it's in the resolving state and `resolve` is captured.
-     */
-    #tryResolve() {
-        if (this.#resolve && this.#state === State.Resolving) {
-            this.#state = State.Resolved;
-            this.#resolve(...this.#data as Parameters<Resolve<T>>);
-        }
-    }
-
-    /**
-     * Tries to reject the promise if it's in the rejecting state and `reject` is captured.
-     */
-    #tryReject() {
-        if (this.#reject && this.#state === State.Rejecting) {
-            this.#state = State.Rejected;
-            this.#reject(...this.#data as Parameters<Reject>);
-        }
+        this.#state = State.Pending;
+        executor?.(this.resolve, this.reject, this.cancel);
     }
 
     /**
      * Resolves the promise as does the executor's `resolve` argument.
      * Can be used to resolve promise at any point without having that logic inside executor.
      */
-    resolve = (...args: Parameters<Resolve<T>>) => {
+    resolve: Resolve<T> = (...args) => {
         if (this.#state === State.Pending) {
-            this.#state = State.Resolving;
-            this.#data = args;
-            this.#tryResolve();
+            this.#state = State.Resolved;
+            this.#resolve(...args);
         } else {
             PromiseExt.logger?.(`Attempted to resolve ${this.#state} promise.`);
         }
@@ -107,11 +121,10 @@ export class PromiseExt<T> {
      * Rejects the promise as does the executor's `reject` argument.
      * Can be used to reject promise at any point without having that logic inside executor.
      */
-    reject = (...args: Parameters<Reject>) => {
+    reject: Reject = (...args) => {
         if (this.#state === State.Pending) {
-            this.#state = State.Rejecting;
-            this.#data = args;
-            this.#tryReject();
+            this.#state = State.Rejected;
+            this.#reject(...args);
         } else {
             PromiseExt.logger?.(`Attempted to reject ${this.#state} promise.`);
         }
@@ -121,10 +134,9 @@ export class PromiseExt<T> {
      * Cancels the promise as does the executor's `cancel` argument.
      * Can be used to cancel promise at any point without having that logic inside executor.
      */
-    cancel = (...args: Parameters<Cancel>) => {
+    cancel: Cancel = () => {
         if (this.#state === State.Pending) {
             this.#state = State.Canceled;
-            this.#data = args;
         } else {
             PromiseExt.logger?.(`Attempted to cancel ${this.#state} promise.`);
         }
@@ -134,7 +146,7 @@ export class PromiseExt<T> {
      * Does the same as method `then` of the native `Promise`. 
      * Returns native `Promise` for better performance.
      */
-    then = (...args: Parameters<Promise<T>["then"]>) => {
+    then: Promise<T>["then"] = (...args) => {
         return this.#inner.then(...args);
     }
 
@@ -142,7 +154,7 @@ export class PromiseExt<T> {
      * Does the same as method `catch` of the native `Promise`. 
      * Returns native `Promise` for better performance.
      */
-    catch = (...args: Parameters<Promise<T>["catch"]>) => {
+    catch: Promise<T>["catch"] = (...args) => {
         return this.#inner.catch(...args);
     }
 
@@ -150,7 +162,7 @@ export class PromiseExt<T> {
      * Does the same as method `finally` of the native `Promise`. 
      * Returns native `Promise` for better performance.
      */
-    finally = (...args: Parameters<Promise<T>["finally"]>) => {
+    finally: Promise<T>["finally"] = (...args) => {
         return this.#inner.finally(...args);
     }
 
@@ -172,6 +184,10 @@ export class PromiseExt<T> {
 
     get isCanceled() {
         return this.#state === State.Canceled;
+    }
+
+    get [Symbol.toStringTag]() {
+        return "PromiseExt";
     }
 
 }
